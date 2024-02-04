@@ -30,3 +30,13 @@
 *.exe
 *.out
 *.app
+
+# Custom
+*.NASDAQ_ITCH50*
+*.gz
+*lines
+CMakeCache*
+CMakeFiles*
+Makefile
+callgrind.out.*
+cmake*
