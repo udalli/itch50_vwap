@@ -38,5 +38,6 @@
 CMakeCache*
 CMakeFiles*
 Makefile
-callgrind.out.*
+build
+callgrind.*
 cmake*

@@ -144,6 +144,19 @@ public:
   Price_t                get_price() const;
 };
 
+class OrderCancelMessage : public Message
+{
+public:
+  OrderReferenceNumber_t get_order_reference_number() const;
+  SharesCount_t          get_nr_shares() const;
+};
+
+class OrderDeleteMessage : public Message
+{
+public:
+  OrderReferenceNumber_t get_order_reference_number() const;
+};
+
 class TradeMessage : public Message
 {
 public:
@@ -202,8 +215,10 @@ struct Order
 struct Execution
 {
   OrderReferenceNumber_t m_reference_number{};
+  OrderType              m_type{};
   SharesCount_t          m_nr_shares{};
   MatchNumber_t          m_match_num{};
+  Stock_t                m_stock{};
   Price_t                m_price{};
 };
 

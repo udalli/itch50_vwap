@@ -247,6 +247,21 @@ Price_t OrderReplaceMessage::get_price() const
   return read_4(m_raw_data + 31) / (10000.0);
 }
 
+OrderReferenceNumber_t OrderCancelMessage::get_order_reference_number() const
+{
+  return static_cast<OrderReferenceNumber_t>(read_8(m_raw_data + 11));
+}
+
+SharesCount_t OrderCancelMessage::get_nr_shares() const
+{
+  return static_cast<OrderReferenceNumber_t>(read_8(m_raw_data + 19));
+}
+
+OrderReferenceNumber_t OrderDeleteMessage::get_order_reference_number() const
+{
+  return static_cast<OrderReferenceNumber_t>(read_8(m_raw_data + 11));
+}
+
 OrderReferenceNumber_t TradeMessage::get_order_reference_number() const
 {
   return static_cast<OrderReferenceNumber_t>(read_8(m_raw_data + 11));
@@ -294,17 +309,6 @@ MessageReader::MessageReader(std::string filename) : m_mapped_file(filename, boo
   }
 }
 
-bool MessageReader::read(std::size_t length)
-{
-  return false;
-  //  if (m_file_start + length >= m_file_end)
-  //  {
-  //    return false;
-  //  }
-  //
-  //  return m_ifs && m_ifs.read(reinterpret_cast<char *>(m_buffer), length);
-}
-
 bool MessageReader::is_done() const
 {
   return (m_file_start + MESSAGE_LENGTH_SIZE) >= m_file_end;
@@ -337,6 +341,8 @@ MessageHandler::MessageHandler()
   //  m_executions.reserve(10ULL * 1024 * 1024);
 }
 
+static std::unordered_map<MessageType, size_t> counts;
+
 void MessageHandler::handle_message(const Message &message)
 {
   const Timestamp_t report_period = 1000000000UL * 3600;
@@ -350,6 +356,8 @@ void MessageHandler::handle_message(const Message &message)
   ++i;
   if (i % 10000000 == 0)
     std::cout << "Add: " << i << std::endl;
+
+  counts[message.get_type()]++;
 
   switch (message.get_type())
   {
@@ -377,13 +385,19 @@ void MessageHandler::handle_message(const Message &message)
   {
     const auto &submessage = reinterpret_cast<const OrderExecutedMessage &>(message);
     const auto  ref_num    = submessage.get_order_reference_number();
-    const auto &order      = m_orders[ref_num];
+    auto       &order      = m_orders[ref_num];
     auto       &execution  = m_executions[submessage.get_match_number()];
 
     execution.m_reference_number = ref_num;
     execution.m_nr_shares        = submessage.get_nr_shares();
     execution.m_match_num        = submessage.get_match_number();
     execution.m_price            = order.m_price;
+    order.m_nr_shares -= execution.m_nr_shares;
+
+    if (0 == order.m_nr_shares)
+    {
+      m_orders.erase(ref_num);
+    }
     break;
   }
   case MessageType::OrderExecutedWithPrice:
@@ -391,14 +405,20 @@ void MessageHandler::handle_message(const Message &message)
     const auto &submessage = reinterpret_cast<const OrderExecutedWithPriceMessage &>(message);
     if (Printable::Yes == submessage.get_printable())
     {
-      const auto  ref_num   = submessage.get_order_reference_number();
-      const auto &order     = m_orders[ref_num];
-      auto       &execution = m_executions[submessage.get_match_number()];
+      const auto ref_num   = submessage.get_order_reference_number();
+      auto      &order     = m_orders[ref_num];
+      auto      &execution = m_executions[submessage.get_match_number()];
 
       execution.m_reference_number = ref_num;
       execution.m_nr_shares        = submessage.get_nr_shares();
       execution.m_match_num        = submessage.get_match_number();
       execution.m_price            = submessage.get_price();
+      order.m_nr_shares -= execution.m_nr_shares;
+
+      if (0 == order.m_nr_shares)
+      {
+        m_orders.erase(ref_num);
+      }
     }
     break;
   }
@@ -420,15 +440,45 @@ void MessageHandler::handle_message(const Message &message)
   case MessageType::Trade:
   {
     const auto &submessage = reinterpret_cast<const TradeMessage &>(message);
+    const auto  ref_num    = submessage.get_order_reference_number();
+    auto       &execution  = m_executions[submessage.get_match_number()];
+
+    execution.m_reference_number = ref_num;
+    execution.m_type             = submessage.get_order_type();
+    execution.m_nr_shares        = submessage.get_nr_shares();
+    execution.m_stock            = submessage.get_stock();
+    execution.m_price            = submessage.get_price();
+    execution.m_match_num        = submessage.get_match_number();
+
     break;
   }
   case MessageType::BrokenTrade:
   {
-    const auto &submessage = reinterpret_cast<const BrokenTradeMessage &>(message);
+    // Ignored, NQTVITCHspecification: "If a firm is only using the ITCH feed to build a book,
+    // however, it may ignore these messages as they have no impact on the current book"
     break;
   }
   case MessageType::OrderCancel:
+  {
+    const auto &submessage = reinterpret_cast<const OrderCancelMessage &>(message);
+    const auto  ref_num    = submessage.get_order_reference_number();
+    auto       &order      = m_orders[ref_num];
+
+    order.m_nr_shares -= submessage.get_nr_shares();
+
+    if (0 == order.m_nr_shares)
+    {
+      m_orders.erase(ref_num);
+    }
+    break;
+  }
   case MessageType::OrderDelete:
+  {
+    const auto &submessage = reinterpret_cast<const OrderDeleteMessage &>(message);
+    const auto  ref_num    = submessage.get_order_reference_number();
+    m_orders.erase(ref_num);
+    break;
+  }
   default:
     // Unused messages
     break;
@@ -437,5 +487,10 @@ void MessageHandler::handle_message(const Message &message)
 
 void MessageHandler::report()
 {
+  std::cout << "Report: " << std::endl;
+  for (const auto &[key, value] : counts)
+  {
+    std::cout << "[ " << key << ": " << value << " ]" << std::endl;
+  }
 }
 } // namespace ITCH
