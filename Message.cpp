@@ -1,6 +1,5 @@
 #include "Message.h"
 #include <algorithm>
-#include <cmath>
 #include <cstdint>
 #include <ctime>
 #include <cwchar>
@@ -12,12 +11,12 @@
 namespace ITCH
 {
 
-constexpr auto SEC_IN_NANOS  = 1000000000UL;
+constexpr auto SEC_IN_NANOS  = 1'000'000'000UL;
 constexpr auto MIN_IN_NANOS  = 60 * SEC_IN_NANOS;
 constexpr auto HOUR_IN_NANOS = 60 * MIN_IN_NANOS;
 
 constexpr auto REPORT_PERIOD           = HOUR_IN_NANOS;
-constexpr auto PRICE_CONVERSION_FACTOR = 10.000;
+constexpr auto PRICE_CONVERSION_FACTOR = 10'000.0;
 constexpr auto MESSAGE_LENGTH_SIZE     = 2u;
 
 // Wraps Timestamp_t just for operator<<(ostream&)

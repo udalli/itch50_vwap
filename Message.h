@@ -42,7 +42,7 @@ enum MessageType : char
   CrossTrade                                  = 'Q',
   BrokenTrade                                 = 'B',
   NetOrderImbalanceIndicator                  = 'I',
-  RetailInterest                              = 'N', // TODO Is this message valid?
+  RetailInterest                              = 'N',
   DirectListingWithCapitalRaisePriceDiscovery = 'O',
 };
 
@@ -74,7 +74,7 @@ using OrderReferenceNumber_t = std::uint64_t;
 using Price_t                = double;
 using SharesCount_t          = std::uint32_t;
 using StockLocate_t          = std::uint16_t;
-// using Stock_t                = std::string;   // TODO 6% cycle time, change to char[]?
+// using Stock_t                = std::string;   // TODO 9% cycle est, change to char[]?
 using Stock_t          = std::string_view;
 using Timestamp_t      = std::uint64_t; // 48-bit
 using TrackingNumber_t = std::uint16_t;
