@@ -1,23 +1,45 @@
 #include "Message.h"
+#include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <ctime>
 #include <cwchar>
 #include <iomanip>
 #include <ios>
 #include <iostream>
+#include <string_view>
 
 namespace ITCH
 {
 
-inline std::ostream &log_timestamp(std::ostream &ss, const Timestamp_t &timestamp)
+constexpr auto SEC_IN_NANOS  = 1000000000UL;
+constexpr auto MIN_IN_NANOS  = 60 * SEC_IN_NANOS;
+constexpr auto HOUR_IN_NANOS = 60 * MIN_IN_NANOS;
+
+constexpr auto REPORT_PERIOD           = HOUR_IN_NANOS;
+constexpr auto PRICE_CONVERSION_FACTOR = 10.000;
+constexpr auto MESSAGE_LENGTH_SIZE     = 2u;
+
+// Wraps Timestamp_t just for operator<<(ostream&)
+struct Timestamp
 {
-  std::uint64_t remaining_nano = timestamp;
-  const auto    hour           = remaining_nano / (1000000000ULL * 3600);
-  remaining_nano -= hour * ((1000000000ULL * 3600));
-  const auto min = remaining_nano / (1000000000ULL * 60);
-  remaining_nano -= min * ((1000000000ULL * 60));
-  const auto sec = remaining_nano / (1000000000ULL);
-  remaining_nano -= sec * ((1000000000ULL * 1));
+  Timestamp(Timestamp_t val) : m_val(val)
+  {
+  }
+
+  const Timestamp_t m_val;
+};
+
+inline std::ostream &operator<<(std::ostream &ss, const Timestamp &timestamp)
+
+{
+  std::uint64_t remaining_nano = timestamp.m_val;
+  const auto    hour           = remaining_nano / HOUR_IN_NANOS;
+  remaining_nano -= hour * HOUR_IN_NANOS;
+  const auto min = remaining_nano / MIN_IN_NANOS;
+  remaining_nano -= min * MIN_IN_NANOS;
+  const auto sec = remaining_nano / SEC_IN_NANOS;
+  remaining_nano -= sec * SEC_IN_NANOS;
   const std::uint64_t nanosec = remaining_nano;
   ss << std::dec << std::setfill('0');
   ss << std::setw(2) << hour << ":";
@@ -33,7 +55,8 @@ inline std::ostream &operator<<(std::ostream &ss, const Message &message)
   ss << message.get_type() << " | ";
   ss << std::setw(4) << std::hex << message.get_stock_locate() << " | ";
   ss << std::setw(4) << std::hex << message.get_tracking_number() << " | ";
-  return log_timestamp(ss, message.get_timestamp());
+  ss << Timestamp{message.get_timestamp()};
+  return ss;
 }
 
 inline std::ostream &operator<<(std::ostream &ss, const SystemMessage &message)
@@ -107,9 +130,9 @@ inline std::ostream &operator<<(std::ostream &ss, const BrokenTradeMessage &mess
   return ss;
 }
 
-inline std::string read_string(const unsigned char *bytes, std::size_t length)
+inline std::string_view read_string(const unsigned char *bytes, std::size_t length)
 {
-  return std::string(reinterpret_cast<const char *>(bytes), length);
+  return std::string_view(reinterpret_cast<const char *>(bytes), length);
 }
 
 inline std::uint8_t read_1(const unsigned char *bytes)
@@ -144,193 +167,191 @@ inline std::uint64_t read_8(const unsigned char *bytes)
 
 std::size_t Message::get_length() const
 {
-  return m_length;
+  return m_raw_data.size();
 }
 
 MessageType Message::get_type() const
 {
-  return static_cast<MessageType>(read_1(m_raw_data));
+  return static_cast<MessageType>(read_1(m_raw_data.data()));
 }
 
 StockLocate_t Message::get_stock_locate() const
 {
-  return static_cast<StockLocate_t>(read_2(m_raw_data + 1));
+  return static_cast<StockLocate_t>(read_2(m_raw_data.data() + 1));
 }
 
 TrackingNumber_t Message::get_tracking_number() const
 {
-  return static_cast<TrackingNumber_t>(read_2(m_raw_data + 3));
+  return static_cast<TrackingNumber_t>(read_2(m_raw_data.data() + 3));
 }
 
 Timestamp_t Message::get_timestamp() const
 {
-  return static_cast<Timestamp_t>(read_6(m_raw_data + 5));
+  return static_cast<Timestamp_t>(read_6(m_raw_data.data() + 5));
 }
 
 SystemEventType SystemMessage::get_event_type() const
 {
-  return static_cast<SystemEventType>(read_1(m_raw_data + 11));
+  return static_cast<SystemEventType>(read_1(m_raw_data.data() + 11));
 }
 
 OrderReferenceNumber_t AddOrderMessage::get_order_reference_number() const
 {
-  return static_cast<OrderReferenceNumber_t>(read_8(m_raw_data + 11));
+  return static_cast<OrderReferenceNumber_t>(read_8(m_raw_data.data() + 11));
 }
 
 OrderType AddOrderMessage::get_order_type() const
 {
-  return static_cast<OrderType>(read_1(m_raw_data + 19));
+  return static_cast<OrderType>(read_1(m_raw_data.data() + 19));
 }
 
 SharesCount_t AddOrderMessage::get_nr_shares() const
 {
-  return static_cast<SharesCount_t>(read_4(m_raw_data + 20));
+  return static_cast<SharesCount_t>(read_4(m_raw_data.data() + 20));
 }
 
 Stock_t AddOrderMessage::get_stock() const
 {
-  return read_string(m_raw_data + 24, 8);
+  return read_string(m_raw_data.data() + 24, 8);
 }
 
 Price_t AddOrderMessage::get_price() const
 {
-  return read_4(m_raw_data + 32) / (10000.0);
+  return read_4(m_raw_data.data() + 32) / PRICE_CONVERSION_FACTOR;
 }
 
 Attribution_t AddOrderMPIDAttributionMessage::get_attribution() const
 {
-  return read_string(m_raw_data + 36, 4);
+  return read_string(m_raw_data.data() + 36, 4);
 }
 
 OrderReferenceNumber_t OrderExecutedMessage::get_order_reference_number() const
 {
-  return static_cast<OrderReferenceNumber_t>(read_8(m_raw_data + 11));
+  return static_cast<OrderReferenceNumber_t>(read_8(m_raw_data.data() + 11));
 }
 
 SharesCount_t OrderExecutedMessage::get_nr_shares() const
 {
-  return static_cast<SharesCount_t>(read_4(m_raw_data + 19));
+  return static_cast<SharesCount_t>(read_4(m_raw_data.data() + 19));
 }
 
 MatchNumber_t OrderExecutedMessage::get_match_number() const
 {
-  return static_cast<MatchNumber_t>(read_8(m_raw_data + 23));
+  return static_cast<MatchNumber_t>(read_8(m_raw_data.data() + 23));
 }
 
 Printable OrderExecutedWithPriceMessage::get_printable() const
 {
-  return static_cast<Printable>(read_1(m_raw_data + 31));
+  return static_cast<Printable>(read_1(m_raw_data.data() + 31));
 }
 
 Price_t OrderExecutedWithPriceMessage::get_price() const
 {
-  return read_4(m_raw_data + 32) / (10000.0);
+  return read_4(m_raw_data.data() + 32) / PRICE_CONVERSION_FACTOR;
 }
 
 OrderReferenceNumber_t OrderReplaceMessage::get_original_order_reference_number() const
 {
-  return static_cast<OrderReferenceNumber_t>(read_8(m_raw_data + 11));
+  return static_cast<OrderReferenceNumber_t>(read_8(m_raw_data.data() + 11));
 }
 
 OrderReferenceNumber_t OrderReplaceMessage::get_new_order_reference_number() const
 {
-  return static_cast<OrderReferenceNumber_t>(read_8(m_raw_data + 19));
+  return static_cast<OrderReferenceNumber_t>(read_8(m_raw_data.data() + 19));
 }
 
 SharesCount_t OrderReplaceMessage::get_nr_shares() const
 {
-  return static_cast<SharesCount_t>(read_4(m_raw_data + 27));
+  return static_cast<SharesCount_t>(read_4(m_raw_data.data() + 27));
 }
 
 Price_t OrderReplaceMessage::get_price() const
 {
-  return read_4(m_raw_data + 31) / (10000.0);
+  return read_4(m_raw_data.data() + 31) / PRICE_CONVERSION_FACTOR;
 }
 
 OrderReferenceNumber_t OrderCancelMessage::get_order_reference_number() const
 {
-  return static_cast<OrderReferenceNumber_t>(read_8(m_raw_data + 11));
+  return static_cast<OrderReferenceNumber_t>(read_8(m_raw_data.data() + 11));
 }
 
 SharesCount_t OrderCancelMessage::get_nr_shares() const
 {
-  return static_cast<OrderReferenceNumber_t>(read_8(m_raw_data + 19));
+  return static_cast<OrderReferenceNumber_t>(read_8(m_raw_data.data() + 19));
 }
 
 OrderReferenceNumber_t OrderDeleteMessage::get_order_reference_number() const
 {
-  return static_cast<OrderReferenceNumber_t>(read_8(m_raw_data + 11));
+  return static_cast<OrderReferenceNumber_t>(read_8(m_raw_data.data() + 11));
 }
 
 OrderReferenceNumber_t TradeMessage::get_order_reference_number() const
 {
-  return static_cast<OrderReferenceNumber_t>(read_8(m_raw_data + 11));
+  return static_cast<OrderReferenceNumber_t>(read_8(m_raw_data.data() + 11));
 }
 
 OrderType TradeMessage::get_order_type() const
 {
-  return static_cast<OrderType>(read_1(m_raw_data + 19));
+  return static_cast<OrderType>(read_1(m_raw_data.data() + 19));
 }
 
 SharesCount_t TradeMessage::get_nr_shares() const
 {
-  return static_cast<SharesCount_t>(read_4(m_raw_data + 20));
+  return static_cast<SharesCount_t>(read_4(m_raw_data.data() + 20));
 }
 
 Stock_t TradeMessage::get_stock() const
 {
-  return read_string(m_raw_data + 24, 8);
+  return read_string(m_raw_data.data() + 24, 8);
 }
 
 Price_t TradeMessage::get_price() const
 {
-  return read_4(m_raw_data + 32) / (10000.0);
+  return read_4(m_raw_data.data() + 32) / PRICE_CONVERSION_FACTOR;
 }
 
 MatchNumber_t TradeMessage::get_match_number() const
 {
-  return static_cast<MatchNumber_t>(read_8(m_raw_data + 36));
+  return static_cast<MatchNumber_t>(read_8(m_raw_data.data() + 36));
 }
 
 MatchNumber_t BrokenTradeMessage::get_match_number() const
 {
-  return static_cast<MatchNumber_t>(read_8(m_raw_data + 11));
+  return static_cast<MatchNumber_t>(read_8(m_raw_data.data() + 11));
 }
 
-MessageReader::MessageReader(std::string filename) : m_mapped_file(filename, boost::iostreams::mapped_file::readonly)
+MessageReader::MessageReader(std::string filename)
+  : m_mapped_file(filename, boost::iostreams::mapped_file::readonly),
+    m_data((const unsigned char *)m_mapped_file.const_data(), m_mapped_file.size())
 {
-  //  mapped_file_source -> read only
-  m_file_start = (const unsigned char *)m_mapped_file.const_data();
-  m_file_end   = (const unsigned char *)m_file_start + m_mapped_file.size();
-
-  if (!m_mapped_file.is_open() || !m_file_start)
+  if (!m_mapped_file.is_open() || !m_data.data() || m_data.empty())
   {
-    throw "Whoops";
+    throw "Failed to open file!";
   }
 }
 
 bool MessageReader::is_done() const
 {
-  return (m_file_start + MESSAGE_LENGTH_SIZE) >= m_file_end;
+  return (m_pos + MESSAGE_LENGTH_SIZE) >= m_data.size();
 }
 
 bool MessageReader::next(Message &message)
 {
-  if (m_file_start + MESSAGE_LENGTH_SIZE > m_file_end)
+  if (m_pos + MESSAGE_LENGTH_SIZE > m_data.size())
   {
     return false;
   }
 
-  const auto message_size = read_2(m_file_start);
-  m_file_start += MESSAGE_LENGTH_SIZE;
+  const auto message_size = read_2(m_data.data() + m_pos);
+  m_pos += MESSAGE_LENGTH_SIZE;
 
-  if (m_file_start + message_size > m_file_end)
+  if (m_pos + message_size > m_data.size())
   {
     return false;
   }
 
-  message = Message{m_file_start, message_size};
-  m_file_start += message_size;
+  message = Message{m_data.subspan(m_pos, message_size)};
+  m_pos += message_size;
 
   return true;
 }
@@ -341,100 +362,133 @@ MessageHandler::MessageHandler()
   //  m_executions.reserve(10ULL * 1024 * 1024);
 }
 
-static std::unordered_map<MessageType, size_t> counts;
+MessageHandler::~MessageHandler()
+{
+  // TODO Make it nicer
+  report(m_last_report_timestamp + REPORT_PERIOD);
+}
 
 void MessageHandler::handle_message(const Message &message)
 {
-  const Timestamp_t report_period = 1000000000UL * 3600;
-  const auto        timestamp     = message.get_timestamp();
-  if (timestamp >= m_last_report_timestamp + report_period)
-  {
-    report();
-    m_last_report_timestamp += report_period;
-  }
-  static size_t i = 0;
-  ++i;
-  if (i % 10000000 == 0)
-    std::cout << "Add: " << i << std::endl;
+  //  static std::unordered_map<MessageType, size_t> counts;
+  //  counts[message.get_type()]++;
 
-  counts[message.get_type()]++;
+  const auto timestamp = message.get_timestamp();
+  report(timestamp);
 
   switch (message.get_type())
   {
   // TODO Get rid of casting?
   case MessageType::SystemEvent:
   {
+    static const auto event_logs = std::unordered_map<SystemEventType, std::string>{
+      {SystemEventType::StartMessages, "Start of Messages"},
+      {SystemEventType::StartSystemHours, "Start of System hours"},
+      {SystemEventType::StartMarketHours, "Start of Market hours"},
+      {SystemEventType::EndMarketHours, "End of Market hours"},
+      {SystemEventType::EndSystemHours, "End of System hours"},
+      {SystemEventType::EndMessages, "End of Messages"},
+    };
+
     const auto &submessage = reinterpret_cast<const SystemMessage &>(message);
-    std::cout << submessage << std::endl;
+    std::cout << Timestamp{timestamp} << " | " << event_logs.at(submessage.get_event_type()) << std::endl;
     break;
   }
   case MessageType::AddOrder:
   case MessageType::AddOrderMPIDAttribution:
   {
     const auto &submessage = reinterpret_cast<const AddOrderMessage &>(message);
-    auto       &order      = m_orders[submessage.get_order_reference_number()];
+    const auto  ref_num    = submessage.get_order_reference_number();
+    auto       &order      = m_orders[ref_num];
 
-    order.m_reference_number = submessage.get_order_reference_number();
+    order.m_reference_number = ref_num;
     order.m_type             = submessage.get_order_type();
     order.m_nr_shares        = submessage.get_nr_shares();
     order.m_stock            = submessage.get_stock();
     order.m_price            = submessage.get_price();
+
     break;
   }
   case MessageType::OrderExecuted:
   {
     const auto &submessage = reinterpret_cast<const OrderExecutedMessage &>(message);
     const auto  ref_num    = submessage.get_order_reference_number();
-    auto       &order      = m_orders[ref_num];
-    auto       &execution  = m_executions[submessage.get_match_number()];
+    auto        iter_order = m_orders.find(ref_num);
 
-    execution.m_reference_number = ref_num;
-    execution.m_nr_shares        = submessage.get_nr_shares();
-    execution.m_match_num        = submessage.get_match_number();
-    execution.m_price            = order.m_price;
-    order.m_nr_shares -= execution.m_nr_shares;
-
-    if (0 == order.m_nr_shares)
+    if (m_orders.end() != iter_order)
     {
-      m_orders.erase(ref_num);
+      auto &order     = iter_order->second;
+      auto &execution = m_executions[submessage.get_match_number()];
+
+      execution.m_reference_number = ref_num;
+      execution.m_type             = order.m_type;
+      execution.m_nr_shares        = submessage.get_nr_shares();
+      execution.m_stock            = order.m_stock;
+      execution.m_match_num        = submessage.get_match_number();
+      execution.m_price            = order.m_price;
+
+      if (execution.m_nr_shares >= order.m_nr_shares)
+      {
+        m_orders.erase(iter_order);
+      }
+      else
+      {
+        order.m_nr_shares -= execution.m_nr_shares;
+      }
+
+      execute_order(execution, timestamp);
     }
+
     break;
   }
   case MessageType::OrderExecutedWithPrice:
   {
     const auto &submessage = reinterpret_cast<const OrderExecutedWithPriceMessage &>(message);
-    if (Printable::Yes == submessage.get_printable())
+    const auto  ref_num    = submessage.get_order_reference_number();
+    auto        iter_order = m_orders.find(ref_num);
+
+    if (Printable::Yes == submessage.get_printable() && m_orders.end() != iter_order)
     {
-      const auto ref_num   = submessage.get_order_reference_number();
-      auto      &order     = m_orders[ref_num];
-      auto      &execution = m_executions[submessage.get_match_number()];
+      auto &order     = iter_order->second;
+      auto &execution = m_executions[submessage.get_match_number()];
 
       execution.m_reference_number = ref_num;
+      execution.m_type             = order.m_type;
       execution.m_nr_shares        = submessage.get_nr_shares();
+      execution.m_stock            = order.m_stock;
       execution.m_match_num        = submessage.get_match_number();
       execution.m_price            = submessage.get_price();
-      order.m_nr_shares -= execution.m_nr_shares;
 
-      if (0 == order.m_nr_shares)
+      if (execution.m_nr_shares >= order.m_nr_shares)
       {
-        m_orders.erase(ref_num);
+        m_orders.erase(iter_order);
       }
+      else
+      {
+        order.m_nr_shares -= execution.m_nr_shares;
+      }
+
+      execute_order(execution, timestamp);
     }
     break;
   }
   case MessageType::OrderReplace:
   {
     const auto &submessage = reinterpret_cast<const OrderReplaceMessage &>(message);
-    auto       &old_order  = m_orders[submessage.get_original_order_reference_number()];
-    auto       &new_order  = m_orders[submessage.get_new_order_reference_number()];
+    auto        iter_order = m_orders.find(submessage.get_original_order_reference_number());
 
-    new_order.m_reference_number = submessage.get_new_order_reference_number();
-    new_order.m_type             = old_order.m_type;
-    new_order.m_nr_shares        = submessage.get_nr_shares();
-    new_order.m_stock            = old_order.m_stock;
-    new_order.m_price            = submessage.get_price();
+    if (m_orders.end() != iter_order)
+    {
+      auto &old_order              = iter_order->second;
+      auto &new_order              = m_orders[submessage.get_new_order_reference_number()];
+      new_order.m_reference_number = submessage.get_new_order_reference_number();
+      new_order.m_type             = old_order.m_type;
+      new_order.m_nr_shares        = submessage.get_nr_shares();
+      new_order.m_stock            = old_order.m_stock;
+      new_order.m_price            = submessage.get_price();
 
-    m_orders.erase(old_order.m_reference_number);
+      m_orders.erase(iter_order);
+    }
     break;
   }
   case MessageType::Trade:
@@ -450,6 +504,8 @@ void MessageHandler::handle_message(const Message &message)
     execution.m_price            = submessage.get_price();
     execution.m_match_num        = submessage.get_match_number();
 
+    execute_order(execution, timestamp);
+
     break;
   }
   case MessageType::BrokenTrade:
@@ -462,13 +518,20 @@ void MessageHandler::handle_message(const Message &message)
   {
     const auto &submessage = reinterpret_cast<const OrderCancelMessage &>(message);
     const auto  ref_num    = submessage.get_order_reference_number();
-    auto       &order      = m_orders[ref_num];
+    auto        iter_order = m_orders.find(ref_num);
 
-    order.m_nr_shares -= submessage.get_nr_shares();
-
-    if (0 == order.m_nr_shares)
+    if (m_orders.end() != iter_order)
     {
-      m_orders.erase(ref_num);
+      auto &order = iter_order->second;
+
+      if (submessage.get_nr_shares() >= order.m_nr_shares)
+      {
+        m_orders.erase(iter_order);
+      }
+      else
+      {
+        order.m_nr_shares -= submessage.get_nr_shares();
+      }
     }
     break;
   }
@@ -480,17 +543,39 @@ void MessageHandler::handle_message(const Message &message)
     break;
   }
   default:
-    // Unused messages
+    // Unused or unknown messages
     break;
   }
 }
 
-void MessageHandler::report()
+void MessageHandler::execute_order(const Execution &execution, const Timestamp_t &timestamp)
 {
-  std::cout << "Report: " << std::endl;
-  for (const auto &[key, value] : counts)
+  auto &stock = m_stocks[execution.m_stock];
+  stock.volume += execution.m_nr_shares;
+  stock.price += execution.m_nr_shares * execution.m_price;
+}
+
+void MessageHandler::report(const Timestamp_t &timestamp)
+{
+  if (m_stocks.empty() || (timestamp < m_last_report_timestamp + REPORT_PERIOD))
   {
-    std::cout << "[ " << key << ": " << value << " ]" << std::endl;
+    return;
+  }
+
+  m_last_report_timestamp = std::max(m_last_report_timestamp, (timestamp / REPORT_PERIOD) * REPORT_PERIOD);
+
+  const auto reportHour = m_last_report_timestamp / REPORT_PERIOD;
+  std::cout << Timestamp{timestamp} << " | dumping " << m_stocks.size() << " stocks" << std::endl;
+
+  std::ofstream ofs(std::to_string(reportHour) + ".csv");
+  ofs << "Stock, VWAP" << std::endl;
+
+  for (const auto &[stock, price_volume] : m_stocks)
+  {
+    const auto VWAP = ((0.0 == price_volume.volume) ? 0.0 : (price_volume.price / price_volume.volume));
+
+    ofs << stock << ", " << VWAP << std::endl;
   }
 }
+
 } // namespace ITCH

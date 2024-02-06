@@ -11,12 +11,16 @@ int main(int argc, char *argv[])
 
     ITCH::MessageReader  mr(filename);
     ITCH::MessageHandler mh;
-    ITCH::Message        message(nullptr, 0);
+    ITCH::Message        message;
 
     while (mr.next(message))
     {
       mh.handle_message(message);
     }
+  }
+  catch (std::exception &ex)
+  {
+    std::cerr << ex.what() << std::endl;
   }
   catch (...)
   {
