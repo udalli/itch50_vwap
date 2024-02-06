@@ -20,11 +20,11 @@ int main(int argc, char *argv[])
   }
   catch (std::exception &ex)
   {
-    std::cerr << ex.what() << std::endl;
+    std::cerr << "An exception occurred: " << ex.what() << std::endl;
   }
   catch (...)
   {
-    std::cout << "EXceasda" << std::endl;
+    std::cout << "An unknown exception occurred!" << std::endl;
   }
 
   return 0;

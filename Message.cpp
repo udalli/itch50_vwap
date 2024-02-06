@@ -16,7 +16,7 @@ constexpr auto MIN_IN_NANOS  = 60 * SEC_IN_NANOS;
 constexpr auto HOUR_IN_NANOS = 60 * MIN_IN_NANOS;
 
 constexpr auto REPORT_PERIOD           = HOUR_IN_NANOS;
-constexpr auto PRICE_CONVERSION_FACTOR = 10'000.0;
+constexpr auto PRICE_CONVERSION_FACTOR = 1.0 / 10'000;
 constexpr auto MESSAGE_LENGTH_SIZE     = 2u;
 
 // Wraps Timestamp_t just for operator<<(ostream&)
@@ -216,7 +216,7 @@ Stock_t AddOrderMessage::get_stock() const
 
 Price_t AddOrderMessage::get_price() const
 {
-  return read_4(m_raw_data.data() + 32) / PRICE_CONVERSION_FACTOR;
+  return read_4(m_raw_data.data() + 32) * PRICE_CONVERSION_FACTOR;
 }
 
 Attribution_t AddOrderMPIDAttributionMessage::get_attribution() const
@@ -246,7 +246,7 @@ Printable OrderExecutedWithPriceMessage::get_printable() const
 
 Price_t OrderExecutedWithPriceMessage::get_price() const
 {
-  return read_4(m_raw_data.data() + 32) / PRICE_CONVERSION_FACTOR;
+  return read_4(m_raw_data.data() + 32) * PRICE_CONVERSION_FACTOR;
 }
 
 OrderReferenceNumber_t OrderReplaceMessage::get_original_order_reference_number() const
@@ -266,7 +266,7 @@ SharesCount_t OrderReplaceMessage::get_nr_shares() const
 
 Price_t OrderReplaceMessage::get_price() const
 {
-  return read_4(m_raw_data.data() + 31) / PRICE_CONVERSION_FACTOR;
+  return read_4(m_raw_data.data() + 31) * PRICE_CONVERSION_FACTOR;
 }
 
 OrderReferenceNumber_t OrderCancelMessage::get_order_reference_number() const
@@ -306,7 +306,7 @@ Stock_t TradeMessage::get_stock() const
 
 Price_t TradeMessage::get_price() const
 {
-  return read_4(m_raw_data.data() + 32) / PRICE_CONVERSION_FACTOR;
+  return read_4(m_raw_data.data() + 32) * PRICE_CONVERSION_FACTOR;
 }
 
 MatchNumber_t TradeMessage::get_match_number() const

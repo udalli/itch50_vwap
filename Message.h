@@ -191,18 +191,10 @@ public:
   bool next(Message &message);
 
 private:
-  bool read(std::size_t length);
-
   // std::ifstream m_ifs;
   boost::iostreams::mapped_file  m_mapped_file;
   std::span<const unsigned char> m_data;
-  std::size_t                    m_pos = 0;
-};
-
-struct OrderExecution
-{
-  SharesCount_t m_nr_shares{};
-  Price_t       m_price{};
+  std::size_t                    m_pos{};
 };
 
 struct Order
@@ -231,11 +223,12 @@ struct VolumePrice
 };
 
 // TODO Benchmark and compare with sparse map and flat map
-template <typename K, typename V> using HashMap = boost::unordered_map<K, V>;
+template <typename K, typename V> using FastMap = boost::unordered_map<K, V>;
+// template <typename K, typename V> using FastMap = std::unordered_map<K, V>;
 template <typename K, typename V> using TreeMap = std::map<K, V>;
 
-// template <typename K, typename V> using Map = std::map<K, V>;
-// template <typename K, typename V> using Map = btree::map<K, V>;
+// TODO Segfaulting at key comparison during erase!?
+// template <typename K, typename V> using FastMap = btree::map<K, V>;
 
 class MessageHandler
 {
@@ -248,8 +241,8 @@ private:
   void execute_order(const Execution &execution, const Timestamp_t &timestamp);
   void report(const Timestamp_t &timestamp);
 
-  using OrderMap            = HashMap<OrderReferenceNumber_t, Order>;
-  using ExecutionMap        = HashMap<MatchNumber_t, Execution>;
+  using OrderMap            = FastMap<OrderReferenceNumber_t, Order>;
+  using ExecutionMap        = FastMap<MatchNumber_t, Execution>;
   using StockVolumePriceMap = TreeMap<Stock_t, VolumePrice>;
 
   OrderMap            m_orders;
