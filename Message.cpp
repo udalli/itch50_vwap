@@ -6,6 +6,8 @@
 #include <iomanip>
 #include <ios>
 #include <iostream>
+#include <memory>
+#include <sstream>
 #include <string_view>
 
 namespace ITCH
@@ -164,6 +166,11 @@ inline std::uint64_t read_8(const unsigned char *bytes)
   return lower | (upper << 32);
 }
 
+std::size_t Message::get_offset() const
+{
+  return m_pos;
+}
+
 std::size_t Message::get_length() const
 {
   return m_raw_data.size();
@@ -319,52 +326,58 @@ MatchNumber_t BrokenTradeMessage::get_match_number() const
   return static_cast<MatchNumber_t>(read_8(m_raw_data.data() + 11));
 }
 
-MessageReader::MessageReader(std::string filename)
-  : m_mapped_file(filename, boost::iostreams::mapped_file::readonly),
-    m_data((const unsigned char *)m_mapped_file.const_data(), m_mapped_file.size())
+MessageReader::MessageReader(std::string filename) : m_file(filename, boost::iostreams::mapped_file::readonly)
 {
-  if (!m_mapped_file.is_open() || !m_data.data() || m_data.empty())
+  if (!m_file.is_open() || !m_file.const_data() || (0 == m_file.size()))
   {
     throw "Failed to open file!";
   }
 }
 
-bool MessageReader::is_done() const
-{
-  return (m_pos + MESSAGE_LENGTH_SIZE) >= m_data.size();
-}
-
 bool MessageReader::next(Message &message)
 {
-  if (m_pos + MESSAGE_LENGTH_SIZE > m_data.size())
+  const auto success = read(message, m_pos);
+
+  if (success)
+  {
+    m_pos += MESSAGE_LENGTH_SIZE + message.get_length();
+  }
+
+  return success;
+}
+
+bool MessageReader::read(Message &message, size_t pos) const
+{
+  const auto total_size = m_file.size();
+
+  if (pos + MESSAGE_LENGTH_SIZE > total_size)
   {
     return false;
   }
 
-  const auto message_size = read_2(m_data.data() + m_pos);
-  m_pos += MESSAGE_LENGTH_SIZE;
+  const auto message_size = read_2((const unsigned char *)m_file.const_data() + pos);
 
-  if (m_pos + message_size > m_data.size())
+  if (pos + MESSAGE_LENGTH_SIZE + message_size > total_size)
   {
     return false;
   }
 
-  message = Message{m_data.subspan(m_pos, message_size)};
-  m_pos += message_size;
+  message = {std::span((const unsigned char *)m_file.const_data() + pos + MESSAGE_LENGTH_SIZE, message_size), pos};
 
   return true;
 }
 
-MessageHandler::MessageHandler()
+MessageHandler::MessageHandler(std::shared_ptr<MessageReader> message_reader) : m_message_reader(message_reader)
 {
-  //  m_orders.reserve(10ULL * 1024 * 1024);
-  //  m_executions.reserve(10ULL * 1024 * 1024);
+  // TODO Optimum initial size?
+  m_orders.reserve(50 * 1024 * 1024);
+  //  m_executions.reserve(2U * 1024 * 1024);
 }
 
 MessageHandler::~MessageHandler()
 {
-  // TODO Make it nicer
-  report(m_last_report_timestamp + REPORT_PERIOD);
+  // TODO Is this necessary?
+  report(m_last_report_time + REPORT_PERIOD);
 }
 
 void MessageHandler::handle_message(const Message &message)
@@ -398,13 +411,7 @@ void MessageHandler::handle_message(const Message &message)
   {
     const auto &submessage = reinterpret_cast<const AddOrderMessage &>(message);
     const auto  ref_num    = submessage.get_order_reference_number();
-    auto       &order      = m_orders[ref_num];
-
-    order.m_reference_number = ref_num;
-    order.m_type             = submessage.get_order_type();
-    order.m_nr_shares        = submessage.get_nr_shares();
-    order.m_stock            = submessage.get_stock();
-    order.m_price            = submessage.get_price();
+    m_orders[ref_num]      = message.get_offset();
 
     break;
   }
@@ -412,12 +419,11 @@ void MessageHandler::handle_message(const Message &message)
   {
     const auto &submessage = reinterpret_cast<const OrderExecutedMessage &>(message);
     const auto  ref_num    = submessage.get_order_reference_number();
-    auto        iter_order = m_orders.find(ref_num);
+    Order       order{};
 
-    if (m_orders.end() != iter_order)
+    if (construct_order(ref_num, order))
     {
-      auto &order     = iter_order->second;
-      auto &execution = m_executions[submessage.get_match_number()];
+      Execution execution{};
 
       execution.m_reference_number = ref_num;
       execution.m_type             = order.m_type;
@@ -426,16 +432,7 @@ void MessageHandler::handle_message(const Message &message)
       execution.m_match_num        = submessage.get_match_number();
       execution.m_price            = order.m_price;
 
-      if (execution.m_nr_shares >= order.m_nr_shares)
-      {
-        m_orders.erase(iter_order);
-      }
-      else
-      {
-        order.m_nr_shares -= execution.m_nr_shares;
-      }
-
-      execute_order(execution, timestamp);
+      execute_order(execution);
     }
 
     break;
@@ -444,12 +441,11 @@ void MessageHandler::handle_message(const Message &message)
   {
     const auto &submessage = reinterpret_cast<const OrderExecutedWithPriceMessage &>(message);
     const auto  ref_num    = submessage.get_order_reference_number();
-    auto        iter_order = m_orders.find(ref_num);
+    Order       order{};
 
-    if (Printable::Yes == submessage.get_printable() && m_orders.end() != iter_order)
+    if ((Printable::Yes == submessage.get_printable()) && construct_order(ref_num, order))
     {
-      auto &order     = iter_order->second;
-      auto &execution = m_executions[submessage.get_match_number()];
+      Execution execution{};
 
       execution.m_reference_number = ref_num;
       execution.m_type             = order.m_type;
@@ -458,35 +454,18 @@ void MessageHandler::handle_message(const Message &message)
       execution.m_match_num        = submessage.get_match_number();
       execution.m_price            = submessage.get_price();
 
-      if (execution.m_nr_shares >= order.m_nr_shares)
-      {
-        m_orders.erase(iter_order);
-      }
-      else
-      {
-        order.m_nr_shares -= execution.m_nr_shares;
-      }
-
-      execute_order(execution, timestamp);
+      execute_order(execution);
     }
     break;
   }
   case MessageType::OrderReplace:
   {
     const auto &submessage = reinterpret_cast<const OrderReplaceMessage &>(message);
-    auto        iter_order = m_orders.find(submessage.get_original_order_reference_number());
+    const auto  iter_order = m_orders.find(submessage.get_original_order_reference_number());
 
     if (m_orders.end() != iter_order)
     {
-      auto &old_order              = iter_order->second;
-      auto &new_order              = m_orders[submessage.get_new_order_reference_number()];
-      new_order.m_reference_number = submessage.get_new_order_reference_number();
-      new_order.m_type             = old_order.m_type;
-      new_order.m_nr_shares        = submessage.get_nr_shares();
-      new_order.m_stock            = old_order.m_stock;
-      new_order.m_price            = submessage.get_price();
-
-      m_orders.erase(iter_order);
+      m_orders[submessage.get_new_order_reference_number()] = message.get_offset();
     }
     break;
   }
@@ -494,7 +473,7 @@ void MessageHandler::handle_message(const Message &message)
   {
     const auto &submessage = reinterpret_cast<const TradeMessage &>(message);
     const auto  ref_num    = submessage.get_order_reference_number();
-    auto       &execution  = m_executions[submessage.get_match_number()];
+    Execution   execution{};
 
     execution.m_reference_number = ref_num;
     execution.m_type             = submessage.get_order_type();
@@ -503,7 +482,7 @@ void MessageHandler::handle_message(const Message &message)
     execution.m_price            = submessage.get_price();
     execution.m_match_num        = submessage.get_match_number();
 
-    execute_order(execution, timestamp);
+    execute_order(execution);
 
     break;
   }
@@ -515,58 +494,107 @@ void MessageHandler::handle_message(const Message &message)
   }
   case MessageType::OrderCancel:
   {
-    const auto &submessage = reinterpret_cast<const OrderCancelMessage &>(message);
-    const auto  ref_num    = submessage.get_order_reference_number();
-    auto        iter_order = m_orders.find(ref_num);
-
-    if (m_orders.end() != iter_order)
-    {
-      auto &order = iter_order->second;
-
-      if (submessage.get_nr_shares() >= order.m_nr_shares)
-      {
-        m_orders.erase(iter_order);
-      }
-      else
-      {
-        order.m_nr_shares -= submessage.get_nr_shares();
-      }
-    }
+    // TODO Check if it is worth to remove in case of zero remanining shares
     break;
   }
   case MessageType::OrderDelete:
   {
+    // TODO Compare IR with vs w/out
     const auto &submessage = reinterpret_cast<const OrderDeleteMessage &>(message);
     const auto  ref_num    = submessage.get_order_reference_number();
-    m_orders.erase(ref_num);
+    m_orders.erase(ref_num); // TODO check inst fetch
     break;
   }
   default:
-    // Unused or unknown messages
+    // Unused or unknown eessages
     break;
   }
 }
 
-void MessageHandler::execute_order(const Execution &execution, const Timestamp_t &timestamp)
+bool MessageHandler::construct_order(OrderReferenceNumber_t ref_num, Order &order) const
+{
+  Message message;
+
+  auto order_iter = m_orders.find(ref_num);
+
+  if ((m_orders.end() == order_iter) || !m_message_reader->read(message, order_iter->second))
+  {
+    std::cerr << "Failed to construct order (order not found)" << order_iter->first << std::endl;
+    return false;
+  }
+
+  switch (message.get_type())
+  {
+  case MessageType::AddOrder:
+  case MessageType::AddOrderMPIDAttribution:
+  {
+    const auto &submessage = reinterpret_cast<const AddOrderMessage &>(message);
+
+    order.m_reference_number = ref_num;
+    order.m_type             = submessage.get_order_type();
+    order.m_nr_shares        = submessage.get_nr_shares();
+    order.m_stock            = submessage.get_stock();
+    order.m_price            = submessage.get_price();
+
+    break;
+  }
+  case MessageType::OrderReplace:
+  {
+    const auto &submessage  = reinterpret_cast<const OrderReplaceMessage &>(message);
+    const auto  old_ref_num = submessage.get_original_order_reference_number();
+    const auto  new_ref_num = submessage.get_new_order_reference_number();
+
+    if (old_ref_num == new_ref_num)
+    {
+      std::cerr << "Failed to construct order (original ref # same as new ref #) " << order_iter->first << std::endl;
+      return false;
+    }
+
+    // TODO Check recursion depth and stack size (or make the function iterative instead)
+    construct_order(submessage.get_original_order_reference_number(), order);
+
+    order.m_reference_number = submessage.get_new_order_reference_number();
+    order.m_nr_shares        = submessage.get_nr_shares();
+    order.m_price            = submessage.get_price();
+    break;
+  }
+  default:
+    std::cerr << "Failed to construct order (unexpected message type) " << order_iter->first << std::endl;
+    return false;
+    // break;
+  }
+
+  return true;
+}
+
+void MessageHandler::execute_order(const Execution &execution)
 {
   auto &stock = m_stocks[execution.m_stock];
+
   stock.volume += execution.m_nr_shares;
   stock.price += execution.m_nr_shares * execution.m_price;
 }
 
-void MessageHandler::report(const Timestamp_t &timestamp)
+void MessageHandler::report(const Timestamp_t &current_time)
 {
-  if (m_stocks.empty() || (timestamp < m_last_report_timestamp + REPORT_PERIOD))
+  if (m_stocks.empty() || (current_time < m_last_report_time + REPORT_PERIOD))
   {
     return;
   }
 
-  m_last_report_timestamp = std::max(m_last_report_timestamp, (timestamp / REPORT_PERIOD) * REPORT_PERIOD);
+  m_last_report_time = std::max(m_last_report_time, (current_time / REPORT_PERIOD) * REPORT_PERIOD);
 
-  const auto reportHour = m_last_report_timestamp / REPORT_PERIOD;
-  std::cout << Timestamp{timestamp} << " | dumping " << m_stocks.size() << " stocks" << std::endl;
+  const auto        hour = m_last_report_time / REPORT_PERIOD;
+  std::stringstream filename;
 
-  std::ofstream ofs(std::to_string(reportHour) + ".csv");
+  filename << "Stock_VWAP_" << std::setw(2) << std::setfill('0') << hour << ".csv";
+
+  std::cout << Timestamp{current_time} << " | Reporting VWAP | " << filename.str() << " | " << m_stocks.size()
+            << " stocks" << std::endl;
+
+  // TODO Check I/O time (async?)
+  std::ofstream ofs(filename.str());
+
   ofs << "Stock, VWAP" << std::endl;
 
   for (const auto &[stock, price_volume] : m_stocks)

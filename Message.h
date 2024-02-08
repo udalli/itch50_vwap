@@ -84,7 +84,11 @@ class Message
 public:
   Message() = default;
 
-  Message(std::span<const unsigned char> raw_data) : m_raw_data(raw_data)
+  //  Message(std::span<const unsigned char> raw_data) : m_raw_data(raw_data)
+  //  {
+  //  }
+
+  Message(std::span<const unsigned char> raw_data, size_t pos) : m_raw_data(raw_data), m_pos(pos)
   {
   }
 
@@ -94,6 +98,7 @@ public:
   //  Message(Message &&)                 = default;
   //  Message &operator=(Message &&)      = default;
 
+  std::size_t      get_offset() const;
   std::size_t      get_length() const;
   MessageType      get_type() const;
   StockLocate_t    get_stock_locate() const;
@@ -102,6 +107,9 @@ public:
 
 protected:
   std::span<const unsigned char> m_raw_data;
+
+private:
+  size_t m_pos;
 };
 
 class SystemMessage : public Message
@@ -187,14 +195,13 @@ class MessageReader
 public:
   MessageReader(std::string filename);
 
-  bool is_done() const;
   bool next(Message &message);
+  bool read(Message &message, size_t pos) const;
 
 private:
   // std::ifstream m_ifs;
-  boost::iostreams::mapped_file  m_mapped_file;
-  std::span<const unsigned char> m_data;
-  std::size_t                    m_pos{};
+  boost::iostreams::mapped_file m_file;
+  std::size_t                   m_pos{};
 };
 
 struct Order
@@ -227,28 +234,28 @@ template <typename K, typename V> using FastMap = boost::unordered_map<K, V>;
 // template <typename K, typename V> using FastMap = std::unordered_map<K, V>;
 template <typename K, typename V> using TreeMap = std::map<K, V>;
 
-// TODO Segfaulting at key comparison during erase!?
+// TODO Segfaulting at key comparison during erase!? Fixable?
 // template <typename K, typename V> using FastMap = btree::map<K, V>;
 
 class MessageHandler
 {
 public:
-  MessageHandler();
+  MessageHandler(std::shared_ptr<MessageReader> message_reader);
   ~MessageHandler();
   void handle_message(const Message &message);
 
 private:
-  void execute_order(const Execution &execution, const Timestamp_t &timestamp);
-  void report(const Timestamp_t &timestamp);
+  bool construct_order(OrderReferenceNumber_t ref_num, Order &order) const;
+  void execute_order(const Execution &execution);
+  void report(const Timestamp_t &current_time);
 
-  using OrderMap            = FastMap<OrderReferenceNumber_t, Order>;
-  using ExecutionMap        = FastMap<MatchNumber_t, Execution>;
+  using OrderMap            = FastMap<OrderReferenceNumber_t, size_t>;
   using StockVolumePriceMap = TreeMap<Stock_t, VolumePrice>;
 
-  OrderMap            m_orders;
-  ExecutionMap        m_executions;
-  StockVolumePriceMap m_stocks;
-  Timestamp_t         m_last_report_timestamp{};
+  std::shared_ptr<MessageReader> m_message_reader;
+  OrderMap                       m_orders;
+  StockVolumePriceMap            m_stocks;
+  Timestamp_t                    m_last_report_time{};
 };
 
 } // namespace ITCH
