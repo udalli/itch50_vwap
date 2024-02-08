@@ -1,17 +1,15 @@
+#include "ankerl/unordered_dense.h"
 #include <algorithm>
-#include <boost/fusion/container/map.hpp>
 #include <boost/iostreams/device/mapped_file.hpp>
-#include <boost/unordered/unordered_map.hpp>
-#include <boost/unordered/unordered_map_fwd.hpp>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <fstream>
+#include <map>
 #include <memory>
 #include <span>
 #include <string>
 #include <string_view>
-#include <unordered_map>
 #include <vector>
 
 namespace ITCH
@@ -72,7 +70,7 @@ using OrderReferenceNumber_t = std::uint64_t;
 using Price_t                = double;
 using SharesCount_t          = std::uint32_t;
 using StockLocate_t          = std::uint16_t;
-// using Stock_t                = std::string;   // TODO 9% cycle est, change to char[]?
+// using Stock_t                = std::string;   // TODO 9% cycle time, change to char[]?
 using Stock_t          = std::string_view;
 using Timestamp_t      = std::uint64_t; // 48-bit
 using TrackingNumber_t = std::uint16_t;
@@ -81,10 +79,6 @@ class Message
 {
 public:
   Message() = default;
-
-  //  Message(std::span<const unsigned char> raw_data) : m_raw_data(raw_data)
-  //  {
-  //  }
 
   Message(std::span<const unsigned char> raw_data, size_t pos) : m_raw_data(raw_data), m_pos(pos)
   {
@@ -227,13 +221,12 @@ struct VolumePrice
   double price{};
 };
 
-// TODO Benchmark and compare with sparse map and flat map
-template <typename K, typename V> using FastMap = boost::unordered_map<K, V>;
-// template <typename K, typename V> using FastMap = std::unordered_map<K, V>;
-template <typename K, typename V> using TreeMap = std::map<K, V>;
-
+// TODO Benchmark further -> compare with sparse map and flat map
+template <typename K, typename V> using HashMap = ankerl::unordered_dense::map<K, V>;
+// template <typename K, typename V> using HashMap = boost::unordered_map<K, V>;
 // TODO Segfaulting at key comparison during erase!? Fixable?
-// template <typename K, typename V> using FastMap = btree::map<K, V>;
+// template <typename K, typename V> using HashMap = btree::map<K, V>;
+template <typename K, typename V> using TreeMap = std::map<K, V>;
 
 class MessageHandler
 {
@@ -247,7 +240,7 @@ private:
   void execute_order(const Execution &execution);
   void report(const Timestamp_t &current_time);
 
-  using OrderMap            = FastMap<OrderReferenceNumber_t, size_t>;
+  using OrderMap            = HashMap<OrderReferenceNumber_t, size_t>;
   using StockVolumePriceMap = TreeMap<Stock_t, VolumePrice>;
 
   std::shared_ptr<MessageReader> m_message_reader;

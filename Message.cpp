@@ -370,8 +370,8 @@ bool MessageReader::read(Message &message, size_t pos) const
 MessageHandler::MessageHandler(std::shared_ptr<MessageReader> message_reader) : m_message_reader(message_reader)
 {
   // TODO Optimum initial size?
-  m_orders.reserve(50 * 1024 * 1024);
-  //  m_executions.reserve(2U * 1024 * 1024);
+  constexpr auto initial_size = 50 * 1024 * 1024;
+  m_orders.reserve(initial_size);
 }
 
 MessageHandler::~MessageHandler()
@@ -494,7 +494,7 @@ void MessageHandler::handle_message(const Message &message)
   }
   case MessageType::OrderCancel:
   {
-    // TODO Check if it is worth to remove in case of zero remanining shares
+    // TODO Check if it is worth to remove an order with zero remanining shares
     break;
   }
   case MessageType::OrderDelete:
@@ -586,6 +586,7 @@ void MessageHandler::report(const Timestamp_t &current_time)
 
   const auto        hour = m_last_report_time / REPORT_PERIOD;
   std::stringstream filename;
+  // std::stringstream data;
 
   filename << "Stock_VWAP_" << std::setw(2) << std::setfill('0') << hour << ".csv";
 
@@ -601,6 +602,8 @@ void MessageHandler::report(const Timestamp_t &current_time)
   {
     const auto VWAP = ((0.0 == price_volume.volume) ? 0.0 : (price_volume.price / price_volume.volume));
 
+    // data << stock << ", " << VWAP << std::endl;
+    // TODO Is it worth to write with async I/O?
     ofs << stock << ", " << VWAP << std::endl;
   }
 }
