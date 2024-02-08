@@ -14,8 +14,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include "btree/map.h"
-
 namespace ITCH
 {
 
