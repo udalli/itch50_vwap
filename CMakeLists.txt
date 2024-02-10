@@ -2,14 +2,16 @@ cmake_minimum_required(VERSION 3.0)
 
 project(ITCH50_Hourly_VWAP)
 
-find_package(Boost 1.36.0 COMPONENTS container iostreams REQUIRED)
-
 set(CMAKE_BUILD_TYPE release) # TODO check if relwithdebinfo is O2 or O3?
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -Wall -std=c++20")
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED on)
 set(CMAKE_INCLUDE_CURRENT_DIR on)
 set(CMAKE_VERBOSE_MAKEFILE on)
+
+set(Boost_USE_STATIC_LIBS on)
+set(Boost_USE_MULTITHREADED off)
+set(Boost_USE_STATIC_RUNTIME on)
 
 include(CheckCXXSourceCompiles)
 check_cxx_source_compiles("
@@ -39,10 +41,6 @@ int main()
 }
 " COMPILER_SUPPORTS_MM_PREFETCH)
 
-set(Boost_USE_STATIC_LIBS on)
-set(Boost_USE_MULTITHREADED off)
-set(Boost_USE_STATIC_RUNTIME on)
-
 if (COMPILER_SUPPORTS_BUILTIN_PREFETCH)
   add_compile_definitions(COMPILER_SUPPORTS_BUILTIN_PREFETCH)
 endif()
@@ -50,6 +48,8 @@ endif()
 if (COMPILER_SUPPORTS_MM_PREFETCH)
   add_compile_definitions(COMPILER_SUPPORTS_MM_PREFETCH)
 endif()
+
+find_package(Boost 1.36.0 COMPONENTS container iostreams REQUIRED)
 
 include_directories(${Boost_INCLUDE_DIRS})
 add_executable(ITCH50_Hourly_VWAP main.cpp Message.cpp)
