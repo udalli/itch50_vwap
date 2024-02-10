@@ -1,6 +1,6 @@
 # NASDAQ ITCH50 VWAP Analyzer
 The repository contains a standalone C++ application that parses an
-ITCH50 file (decompressed) and generates a csv file containing VWAP
+ITCH50 file (decompressed) and generates a csv file per hour with VWAP
 (Volume Weighted Average Price) for each stock.
 
 ## Links
