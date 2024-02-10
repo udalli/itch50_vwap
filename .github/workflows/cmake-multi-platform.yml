@@ -55,6 +55,13 @@ jobs:
       run: choco install -y boost-msvc-14.1
       if: matrix.os == 'windows-latest'
 
+    - name: boost-windows
+      env:
+        BOOST_ROOT: C:\local\boost_1_74_0
+        BOOST_LIBRARYDIR: C:\local\boost_1_74_0\lib64-msvc-14.1\
+      run: choco install -y boost-msvc-14.1
+      if: matrix.os == 'windows-latest'
+      
     - name: Set reusable strings
       # Turn repeated input strings (such as the build output directory) into step outputs. These step outputs can be used throughout the workflow file.
       id: strings
@@ -85,4 +92,4 @@ jobs:
     - uses: actions/upload-artifact@v3
       with:
         name: Archive VWAP files
-        path: ${{ steps.strings.outputs.build-output-dir }}/Stock_VWAP_*.csv
+        path: ${{ steps.strings.outputs.build-output-dir }}/*.csv
