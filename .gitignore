@@ -33,6 +33,7 @@
 
 # Custom
 *.NASDAQ_ITCH50*
+*.csv
 *.gz
 *lines
 CMakeCache*
