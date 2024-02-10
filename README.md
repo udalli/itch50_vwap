@@ -8,6 +8,10 @@ Hashmap benchmarks: https://martin.ankerl.com/2019/04/01/hashmap-benchmarks-01-o
 
 ITCH Specification: https://www.nasdaqtrader.com/content/technicalsupport/specifications/dataproducts/NQTVITCHspecification.pdf
 
+## Dependencies
+CMake
+Boost
+
 ## Build
 mkdir build
 
