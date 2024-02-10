@@ -47,8 +47,13 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
-    - name: boost
+    - name: boost-linux
       run: sudo apt-get update && sudo apt install libboost-all-dev
+      if: matrix.os == 'ubuntu-latest'
+
+    - name: boost-windows
+      run: conda install -c conda-forge boost
+      if: matrix.os == 'windows-latest'
 
     - name: Set reusable strings
       # Turn repeated input strings (such as the build output directory) into step outputs. These step outputs can be used throughout the workflow file.
