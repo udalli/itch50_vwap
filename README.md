@@ -4,13 +4,12 @@ ITCH50 file (decompressed) and generates a csv file per hour with VWAP
 (Volume Weighted Average Price) for each stock.
 
 ## Links
-Hashmap benchmarks: https://martin.ankerl.com/2019/04/01/hashmap-benchmarks-01-overview/
-
-ITCH Specification: https://www.nasdaqtrader.com/content/technicalsupport/specifications/dataproducts/NQTVITCHspecification.pdf
+* Hashmap benchmarks: https://martin.ankerl.com/2019/04/01/hashmap-benchmarks-01-overview/
+* ITCH Specification: https://www.nasdaqtrader.com/content/technicalsupport/specifications/dataproducts/NQTVITCHspecification.pdf
 
 ## Dependencies
-CMake
-Boost
+* CMake
+* Boost
 
 ## Build
 mkdir build
