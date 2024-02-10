@@ -4,7 +4,7 @@ project(ITCH50_Hourly_VWAP)
 
 find_package(Boost 1.36.0 COMPONENTS container iostreams REQUIRED)
 
-set(CMAKE_BUILD_TYPE debug) # TODO check if release is O2 or O3?
+set(CMAKE_BUILD_TYPE release) # TODO check if relwithdebinfo is O2 or O3?
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -Wall -Wextra -std=c++20")
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED on)
