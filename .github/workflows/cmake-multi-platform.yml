@@ -75,4 +75,4 @@ jobs:
       working-directory: ${{ steps.strings.outputs.build-output-dir }}
       # Execute tests defined by the CMake configuration. Note that --build-config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
       # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
-      run: wget https://emi.nasdaq.com/ITCH/Nasdaq%20ITCH/01302019.NASDAQ_ITCH50.gz && gunzip -d 01302019.NASDAQ_ITCH50.gz && time -v ./ITCH50_Hourly_VWAP 01302019.NASDAQ_ITCH50
+      run: wget https://emi.nasdaq.com/ITCH/Nasdaq%20ITCH/01302019.NASDAQ_ITCH50.gz && gunzip -d 01302019.NASDAQ_ITCH50.gz && /usr/bin/time -v ./ITCH50_Hourly_VWAP 01302019.NASDAQ_ITCH50
