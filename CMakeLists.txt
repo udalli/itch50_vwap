@@ -9,9 +9,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED on)
 set(CMAKE_INCLUDE_CURRENT_DIR on)
 set(CMAKE_VERBOSE_MAKEFILE on)
 
-set(Boost_USE_STATIC_LIBS on)
+set(Boost_USE_STATIC_LIBS off)
 set(Boost_USE_MULTITHREADED off)
-set(Boost_USE_STATIC_RUNTIME on)
+set(Boost_USE_STATIC_RUNTIME off)
 
 include(CheckCXXSourceCompiles)
 check_cxx_source_compiles("
