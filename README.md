@@ -2,6 +2,7 @@
 The repository contains a standalone C++ application that parses an
 ITCH50 file (decompressed) and generates a csv file per hour with VWAP
 (Volume Weighted Average Price) for each stock.
+The ITCH50 file is memory mapped and the order offsets are stored in an ankerl::unordered_dense::segmented_map.
 
 ## Links
 * Hashmap benchmarks: https://martin.ankerl.com/2019/04/01/hashmap-benchmarks-01-overview/
