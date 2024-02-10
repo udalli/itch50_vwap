@@ -13,6 +13,8 @@ set(Boost_USE_STATIC_LIBS off)
 set(Boost_USE_MULTITHREADED off)
 set(Boost_USE_STATIC_RUNTIME off)
 
+find_package(Boost 1.36.0 COMPONENTS container iostreams REQUIRED)
+
 include(CheckCXXSourceCompiles)
 check_cxx_source_compiles("
 int main()
@@ -48,8 +50,6 @@ endif()
 if (COMPILER_SUPPORTS_MM_PREFETCH)
   add_compile_definitions(COMPILER_SUPPORTS_MM_PREFETCH)
 endif()
-
-find_package(Boost 1.36.0 COMPONENTS container iostreams REQUIRED)
 
 include_directories(${Boost_INCLUDE_DIRS})
 add_executable(ITCH50_Hourly_VWAP main.cpp Message.cpp)
