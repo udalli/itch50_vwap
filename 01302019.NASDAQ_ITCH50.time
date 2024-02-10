@@ -1,0 +1,46 @@
+03:03:59.687760787 | Start of Messages
+04:00:00.000181476 | Start of System hours
+04:00:00.114519946 | Reporting VWAP | Stock_VWAP_04.csv | 1 stocks
+05:00:00.000600303 | Reporting VWAP | Stock_VWAP_05.csv | 102 stocks
+06:00:00.007387215 | Reporting VWAP | Stock_VWAP_06.csv | 130 stocks
+07:00:00.000166881 | Reporting VWAP | Stock_VWAP_07.csv | 173 stocks
+08:00:00.000242353 | Reporting VWAP | Stock_VWAP_08.csv | 333 stocks
+09:00:00.000452242 | Reporting VWAP | Stock_VWAP_09.csv | 496 stocks
+09:30:00.000036157 | Start of Market hours
+10:00:00.000021126 | Reporting VWAP | Stock_VWAP_10.csv | 5383 stocks
+11:00:00.000079981 | Reporting VWAP | Stock_VWAP_11.csv | 6272 stocks
+12:00:00.000078781 | Reporting VWAP | Stock_VWAP_12.csv | 6645 stocks
+13:00:00.000087590 | Reporting VWAP | Stock_VWAP_13.csv | 6903 stocks
+14:00:00.000037971 | Reporting VWAP | Stock_VWAP_14.csv | 7078 stocks
+15:00:00.000053669 | Reporting VWAP | Stock_VWAP_15.csv | 7324 stocks
+16:00:00.000113132 | Reporting VWAP | Stock_VWAP_16.csv | 7492 stocks
+16:00:00.000113132 | End of Market hours
+17:00:00.000063978 | Reporting VWAP | Stock_VWAP_17.csv | 7494 stocks
+18:00:00.000044266 | Reporting VWAP | Stock_VWAP_18.csv | 7494 stocks
+19:00:00.001028419 | Reporting VWAP | Stock_VWAP_19.csv | 7496 stocks
+20:00:00.000021363 | Reporting VWAP | Stock_VWAP_20.csv | 7496 stocks
+20:00:00.000021363 | End of System hours
+20:05:00.000033998 | End of Messages
+	Command being timed: "./ITCH50_Hourly_VWAP /home/udalli/repos/trexquant/assignment/01302019.NASDAQ_ITCH50"
+	User time (seconds): 31.10
+	System time (seconds): 1.26
+	Percent of CPU this job got: 99%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:32.41
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 12063252
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 441419
+	Voluntary context switches: 2
+	Involuntary context switches: 209
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 2816
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

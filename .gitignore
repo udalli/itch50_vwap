@@ -28,11 +28,11 @@
 
 # Executables
 *.exe
-*.out
+#*.out
 *.app
 
 # Custom
-*.NASDAQ_ITCH50*
+*.NASDAQ_ITCH50
 *.csv
 *.gz
 *lines
