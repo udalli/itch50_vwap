@@ -6,6 +6,7 @@ The ITCH50 file is memory mapped and the order offsets are stored in an ankerl::
 
 ## Links
 * Hashmap benchmarks: https://martin.ankerl.com/2019/04/01/hashmap-benchmarks-01-overview/
+* ankerl::unordered_dense: https://github.com/martinus/unordered_dense
 * ITCH Specification: https://www.nasdaqtrader.com/content/technicalsupport/specifications/dataproducts/NQTVITCHspecification.pdf
 
 ## Dependencies
