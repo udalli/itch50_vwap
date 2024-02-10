@@ -1,14 +1,48 @@
+// MIT License
+//
+// Copyright (c) 2024 Ufuk Dalli
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+//
 #include "Message.h"
-#include <algorithm>
-#include <cstdint>
-#include <ctime>
-#include <cwchar>
+#include <fstream>
 #include <iomanip>
-#include <ios>
 #include <iostream>
-#include <memory>
 #include <sstream>
-#include <string_view>
+
+inline void try_prefetch(const void *addr)
+{
+#if COMPILER_SUPPORTS_BUILTIN_PREFETCH
+  __builtin_prefetch(addr, 0 /* read-only */, 0 /* no temporal locality */); // TODO benchmark locality 3?
+#elif COMPILER_SUPPORTS_MM_PREFETCH
+#ifdef _MSC_VER
+#include <intrin.h>
+#else {
+#include <xmmintrin.h>
+}
+#endif
+  _mm_prefetch(reinterpret_cast<const char *>(addr), _MM_HINT_NTA);
+
+#else
+  (void)addr;
+#endif
+}
 
 namespace ITCH
 {
@@ -326,9 +360,11 @@ MatchNumber_t BrokenTradeMessage::get_match_number() const
   return static_cast<MatchNumber_t>(read_8(m_raw_data.data() + 11));
 }
 
-MessageReader::MessageReader(std::string filename) : m_file(filename, boost::iostreams::mapped_file::readonly)
+MessageReader::MessageReader(std::string filename)
+  : m_file(filename, boost::iostreams::mapped_file::readonly), m_data((const unsigned char *)(m_file.const_data())),
+    m_size(m_file.size())
 {
-  if (!m_file.is_open() || !m_file.const_data() || (0 == m_file.size()))
+  if (!m_file.is_open() || !m_data || (0 == m_size))
   {
     throw "Failed to open file!";
   }
@@ -348,36 +384,37 @@ bool MessageReader::next(Message &message)
 
 bool MessageReader::read(Message &message, size_t pos) const
 {
-  const auto total_size = m_file.size();
-
-  if (pos + MESSAGE_LENGTH_SIZE > total_size)
+  if (pos + MESSAGE_LENGTH_SIZE > m_size)
   {
     return false;
   }
 
-  const auto message_size = read_2((const unsigned char *)m_file.const_data() + pos);
+  const auto message_size = read_2(m_data + pos);
 
-  if (pos + MESSAGE_LENGTH_SIZE + message_size > total_size)
+  // request next message at cache
+  try_prefetch(m_data + pos + MESSAGE_LENGTH_SIZE + message_size);
+
+  if (pos + MESSAGE_LENGTH_SIZE + message_size > m_size)
   {
     return false;
   }
 
-  message = {std::span((const unsigned char *)m_file.const_data() + pos + MESSAGE_LENGTH_SIZE, message_size), pos};
+  message = {std::span(m_data + pos + MESSAGE_LENGTH_SIZE, message_size), pos};
 
   return true;
 }
 
 MessageHandler::MessageHandler(std::shared_ptr<MessageReader> message_reader) : m_message_reader(message_reader)
 {
-  // TODO Optimum initial size?
-  constexpr auto initial_size = 50 * 1024 * 1024;
+  // TODO Find optimum initial size
+  constexpr auto initial_size = 32 * 1024 * 1024;
   m_orders.reserve(initial_size);
 }
 
 MessageHandler::~MessageHandler()
 {
   // TODO Is this necessary?
-  report(m_last_report_time + REPORT_PERIOD);
+  // report(m_last_report_time + REPORT_PERIOD);
 }
 
 void MessageHandler::handle_message(const Message &message)
@@ -402,65 +439,22 @@ void MessageHandler::handle_message(const Message &message)
       {SystemEventType::EndMessages, "End of Messages"},
     };
 
-    const auto &submessage = reinterpret_cast<const SystemMessage &>(message);
+    const auto &submessage = static_cast<const SystemMessage &>(message);
     std::cout << Timestamp{timestamp} << " | " << event_logs.at(submessage.get_event_type()) << std::endl;
     break;
   }
   case MessageType::AddOrder:
   case MessageType::AddOrderMPIDAttribution:
   {
-    const auto &submessage = reinterpret_cast<const AddOrderMessage &>(message);
+    const auto &submessage = static_cast<const AddOrderMessage &>(message);
     const auto  ref_num    = submessage.get_order_reference_number();
     m_orders[ref_num]      = message.get_offset();
 
     break;
   }
-  case MessageType::OrderExecuted:
-  {
-    const auto &submessage = reinterpret_cast<const OrderExecutedMessage &>(message);
-    const auto  ref_num    = submessage.get_order_reference_number();
-    Order       order{};
-
-    if (construct_order(ref_num, order))
-    {
-      Execution execution{};
-
-      execution.m_reference_number = ref_num;
-      execution.m_type             = order.m_type;
-      execution.m_nr_shares        = submessage.get_nr_shares();
-      execution.m_stock            = order.m_stock;
-      execution.m_match_num        = submessage.get_match_number();
-      execution.m_price            = order.m_price;
-
-      execute_order(execution);
-    }
-
-    break;
-  }
-  case MessageType::OrderExecutedWithPrice:
-  {
-    const auto &submessage = reinterpret_cast<const OrderExecutedWithPriceMessage &>(message);
-    const auto  ref_num    = submessage.get_order_reference_number();
-    Order       order{};
-
-    if ((Printable::Yes == submessage.get_printable()) && construct_order(ref_num, order))
-    {
-      Execution execution{};
-
-      execution.m_reference_number = ref_num;
-      execution.m_type             = order.m_type;
-      execution.m_nr_shares        = submessage.get_nr_shares();
-      execution.m_stock            = order.m_stock;
-      execution.m_match_num        = submessage.get_match_number();
-      execution.m_price            = submessage.get_price();
-
-      execute_order(execution);
-    }
-    break;
-  }
   case MessageType::OrderReplace:
   {
-    const auto &submessage = reinterpret_cast<const OrderReplaceMessage &>(message);
+    const auto &submessage = static_cast<const OrderReplaceMessage &>(message);
     const auto  iter_order = m_orders.find(submessage.get_original_order_reference_number());
 
     if (m_orders.end() != iter_order)
@@ -469,27 +463,12 @@ void MessageHandler::handle_message(const Message &message)
     }
     break;
   }
-  case MessageType::Trade:
+  case MessageType::OrderDelete:
   {
-    const auto &submessage = reinterpret_cast<const TradeMessage &>(message);
+    // TODO Compare IR with vs w/out
+    const auto &submessage = static_cast<const OrderDeleteMessage &>(message);
     const auto  ref_num    = submessage.get_order_reference_number();
-    Execution   execution{};
-
-    execution.m_reference_number = ref_num;
-    execution.m_type             = submessage.get_order_type();
-    execution.m_nr_shares        = submessage.get_nr_shares();
-    execution.m_stock            = submessage.get_stock();
-    execution.m_price            = submessage.get_price();
-    execution.m_match_num        = submessage.get_match_number();
-
-    execute_order(execution);
-
-    break;
-  }
-  case MessageType::BrokenTrade:
-  {
-    // Ignored, NQTVITCHspecification: "If a firm is only using the ITCH feed to build a book,
-    // however, it may ignore these messages as they have no impact on the current book"
+    m_orders.erase(ref_num); // TODO check inst fetch
     break;
   }
   case MessageType::OrderCancel:
@@ -497,12 +476,41 @@ void MessageHandler::handle_message(const Message &message)
     // TODO Check if it is worth to remove an order with zero remanining shares
     break;
   }
-  case MessageType::OrderDelete:
+  case MessageType::OrderExecuted:
   {
-    // TODO Compare IR with vs w/out
-    const auto &submessage = reinterpret_cast<const OrderDeleteMessage &>(message);
+    const auto &submessage = static_cast<const OrderExecutedMessage &>(message);
     const auto  ref_num    = submessage.get_order_reference_number();
-    m_orders.erase(ref_num); // TODO check inst fetch
+    Order       order{};
+
+    if (construct_order(ref_num, order))
+    {
+      execute_order(order.m_stock, submessage.get_nr_shares(), order.m_price);
+    }
+
+    break;
+  }
+  case MessageType::OrderExecutedWithPrice:
+  {
+    const auto &submessage = static_cast<const OrderExecutedWithPriceMessage &>(message);
+    const auto  ref_num    = submessage.get_order_reference_number();
+    Order       order{};
+
+    if ((Printable::Yes == submessage.get_printable()) && construct_order(ref_num, order))
+    {
+      execute_order(order.m_stock, submessage.get_nr_shares(), submessage.get_price());
+    }
+    break;
+  }
+  case MessageType::Trade:
+  {
+    const auto &submessage = static_cast<const TradeMessage &>(message);
+    execute_order(submessage.get_stock(), submessage.get_nr_shares(), submessage.get_price());
+    break;
+  }
+  case MessageType::BrokenTrade:
+  {
+    // Ignored, NQTVITCHspecification: "If a firm is only using the ITCH feed to build a book,
+    // however, it may ignore these messages as they have no impact on the current book"
     break;
   }
   default:
@@ -528,7 +536,7 @@ bool MessageHandler::construct_order(OrderReferenceNumber_t ref_num, Order &orde
   case MessageType::AddOrder:
   case MessageType::AddOrderMPIDAttribution:
   {
-    const auto &submessage = reinterpret_cast<const AddOrderMessage &>(message);
+    const auto &submessage = static_cast<const AddOrderMessage &>(message);
 
     order.m_reference_number = ref_num;
     order.m_type             = submessage.get_order_type();
@@ -540,7 +548,7 @@ bool MessageHandler::construct_order(OrderReferenceNumber_t ref_num, Order &orde
   }
   case MessageType::OrderReplace:
   {
-    const auto &submessage  = reinterpret_cast<const OrderReplaceMessage &>(message);
+    const auto &submessage  = static_cast<const OrderReplaceMessage &>(message);
     const auto  old_ref_num = submessage.get_original_order_reference_number();
     const auto  new_ref_num = submessage.get_new_order_reference_number();
 
@@ -550,7 +558,7 @@ bool MessageHandler::construct_order(OrderReferenceNumber_t ref_num, Order &orde
       return false;
     }
 
-    // TODO Check recursion depth and stack size (or make the function iterative instead)
+    // TODO Check recursion depth and stack size (or make the function iterative instead?)
     construct_order(submessage.get_original_order_reference_number(), order);
 
     order.m_reference_number = submessage.get_new_order_reference_number();
@@ -567,12 +575,12 @@ bool MessageHandler::construct_order(OrderReferenceNumber_t ref_num, Order &orde
   return true;
 }
 
-void MessageHandler::execute_order(const Execution &execution)
+void MessageHandler::execute_order(Stock_t stock, SharesCount_t nr_shares, Price_t price)
 {
-  auto &stock = m_stocks[execution.m_stock];
+  auto &stock_info = m_stocks[stock];
 
-  stock.volume += execution.m_nr_shares;
-  stock.price += execution.m_nr_shares * execution.m_price;
+  stock_info.volume += nr_shares;
+  stock_info.price += nr_shares * price;
 }
 
 void MessageHandler::report(const Timestamp_t &current_time)
