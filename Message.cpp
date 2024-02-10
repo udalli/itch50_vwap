@@ -38,7 +38,6 @@ inline void try_prefetch(const void *addr)
 }
 #endif
   _mm_prefetch(reinterpret_cast<const char *>(addr), _MM_HINT_NTA);
-
 #else
   (void)addr;
 #endif
@@ -610,7 +609,6 @@ void MessageHandler::report(const Timestamp_t &current_time)
   {
     const auto VWAP = ((0.0 == price_volume.volume) ? 0.0 : (price_volume.price / price_volume.volume));
 
-    // data << stock << ", " << VWAP << std::endl;
     // TODO Is it worth to write with async I/O?
     ofs << stock << ", " << VWAP << std::endl;
   }
