@@ -46,9 +46,9 @@ inline void try_prefetch(const void *addr)
 namespace ITCH
 {
 
-constexpr auto SEC_IN_NANOS  = 1'000'000'000UL;
-constexpr auto MIN_IN_NANOS  = 60 * SEC_IN_NANOS;
-constexpr auto HOUR_IN_NANOS = 60 * MIN_IN_NANOS;
+constexpr Timestamp_t SEC_IN_NANOS  = 1'000'000'000;
+constexpr Timestamp_t MIN_IN_NANOS  = 60 * SEC_IN_NANOS;
+constexpr Timestamp_t HOUR_IN_NANOS = 60 * MIN_IN_NANOS;
 
 constexpr auto REPORT_PERIOD           = HOUR_IN_NANOS;
 constexpr auto PRICE_CONVERSION_FACTOR = 1.0 / 10'000;
@@ -65,7 +65,6 @@ struct Timestamp
 };
 
 inline std::ostream &operator<<(std::ostream &ss, const Timestamp &timestamp)
-
 {
   std::uint64_t remaining_nano = timestamp.m_val;
   const auto    hour           = remaining_nano / HOUR_IN_NANOS;
@@ -83,86 +82,86 @@ inline std::ostream &operator<<(std::ostream &ss, const Timestamp &timestamp)
   return ss;
 }
 
-inline std::ostream &operator<<(std::ostream &ss, const Message &message)
-{
-  ss << message.get_length() << "b: ";
-  ss << message.get_type() << " | ";
-  ss << std::setw(4) << std::hex << message.get_stock_locate() << " | ";
-  ss << std::setw(4) << std::hex << message.get_tracking_number() << " | ";
-  ss << Timestamp{message.get_timestamp()};
-  return ss;
-}
-
-inline std::ostream &operator<<(std::ostream &ss, const SystemMessage &message)
-{
-  ss << (const Message &)message << " | ";
-  ss << message.get_event_type();
-  return ss;
-}
-
-inline std::ostream &operator<<(std::ostream &ss, const AddOrderMessage &message)
-{
-  ss << (const Message &)message << " | ";
-  ss << message.get_order_reference_number() << " | ";
-  ss << message.get_order_type() << " | ";
-  ss << message.get_nr_shares() << " | ";
-  ss << message.get_stock() << " | ";
-  ss << message.get_price();
-  return ss;
-}
-
-inline std::ostream &operator<<(std::ostream &ss, const AddOrderMPIDAttributionMessage &message)
-{
-  ss << (const AddOrderMessage &)message << " | ";
-  ss << message.get_attribution();
-  return ss;
-}
-
-inline std::ostream &operator<<(std::ostream &ss, const OrderExecutedMessage &message)
-{
-  ss << (const Message &)message << " | ";
-  ss << message.get_order_reference_number() << " | ";
-  ss << message.get_nr_shares() << " | ";
-  ss << message.get_match_number();
-  return ss;
-}
-
-inline std::ostream &operator<<(std::ostream &ss, const OrderExecutedWithPriceMessage &message)
-{
-  ss << (const OrderExecutedMessage &)message << " | ";
-  ss << message.get_printable() << " | ";
-  ss << message.get_price();
-  return ss;
-}
-
-inline std::ostream &operator<<(std::ostream &ss, const OrderReplaceMessage &message)
-{
-  ss << (const Message &)message << " | ";
-  ss << message.get_original_order_reference_number() << " | ";
-  ss << message.get_new_order_reference_number() << " | ";
-  ss << message.get_nr_shares() << " | ";
-  ss << message.get_price();
-  return ss;
-}
-
-inline std::ostream &operator<<(std::ostream &ss, const TradeMessage &message)
-{
-  ss << (const Message &)message << " | ";
-  ss << message.get_order_reference_number() << " | ";
-  ss << message.get_order_type() << " | ";
-  ss << message.get_nr_shares() << " | ";
-  ss << message.get_stock() << " | ";
-  ss << message.get_price() << " | ";
-  ss << message.get_match_number();
-  return ss;
-}
-
-inline std::ostream &operator<<(std::ostream &ss, const BrokenTradeMessage &message)
-{
-  ss << (const Message &)message << " | ";
-  ss << message.get_match_number();
-  return ss;
-}
+// inline std::ostream &operator<<(std::ostream &ss, const Message &message)
+//{
+//   ss << message.get_length() << "b: ";
+//   ss << message.get_type() << " | ";
+//   ss << std::setw(4) << std::hex << message.get_stock_locate() << " | ";
+//   ss << std::setw(4) << std::hex << message.get_tracking_number() << " | ";
+//   ss << Timestamp{message.get_timestamp()};
+//   return ss;
+// }
+//
+// inline std::ostream &operator<<(std::ostream &ss, const SystemMessage &message)
+//{
+//   ss << (const Message &)message << " | ";
+//   ss << message.get_event_type();
+//   return ss;
+// }
+//
+// inline std::ostream &operator<<(std::ostream &ss, const AddOrderMessage &message)
+//{
+//   ss << (const Message &)message << " | ";
+//   ss << message.get_order_reference_number() << " | ";
+//   ss << message.get_order_type() << " | ";
+//   ss << message.get_nr_shares() << " | ";
+//   ss << message.get_stock() << " | ";
+//   ss << message.get_price();
+//   return ss;
+// }
+//
+// inline std::ostream &operator<<(std::ostream &ss, const AddOrderMPIDAttributionMessage &message)
+//{
+//   ss << (const AddOrderMessage &)message << " | ";
+//   ss << message.get_attribution();
+//   return ss;
+// }
+//
+// inline std::ostream &operator<<(std::ostream &ss, const OrderExecutedMessage &message)
+//{
+//   ss << (const Message &)message << " | ";
+//   ss << message.get_order_reference_number() << " | ";
+//   ss << message.get_nr_shares() << " | ";
+//   ss << message.get_match_number();
+//   return ss;
+// }
+//
+// inline std::ostream &operator<<(std::ostream &ss, const OrderExecutedWithPriceMessage &message)
+//{
+//   ss << (const OrderExecutedMessage &)message << " | ";
+//   ss << message.get_printable() << " | ";
+//   ss << message.get_price();
+//   return ss;
+// }
+//
+// inline std::ostream &operator<<(std::ostream &ss, const OrderReplaceMessage &message)
+//{
+//   ss << (const Message &)message << " | ";
+//   ss << message.get_original_order_reference_number() << " | ";
+//   ss << message.get_new_order_reference_number() << " | ";
+//   ss << message.get_nr_shares() << " | ";
+//   ss << message.get_price();
+//   return ss;
+// }
+//
+// inline std::ostream &operator<<(std::ostream &ss, const TradeMessage &message)
+//{
+//   ss << (const Message &)message << " | ";
+//   ss << message.get_order_reference_number() << " | ";
+//   ss << message.get_order_type() << " | ";
+//   ss << message.get_nr_shares() << " | ";
+//   ss << message.get_stock() << " | ";
+//   ss << message.get_price() << " | ";
+//   ss << message.get_match_number();
+//   return ss;
+// }
+//
+// inline std::ostream &operator<<(std::ostream &ss, const BrokenTradeMessage &message)
+//{
+//   ss << (const Message &)message << " | ";
+//   ss << message.get_match_number();
+//   return ss;
+// }
 
 inline std::string_view read_string(const unsigned char *bytes, std::size_t length)
 {
@@ -520,55 +519,54 @@ void MessageHandler::handle_message(const Message &message)
 
 bool MessageHandler::construct_order(OrderReferenceNumber_t ref_num, Order &order) const
 {
-  Message message;
+  Message first_order{};
+  Message last_order{};
+  auto    order_iter = m_orders.find(ref_num);
 
-  auto order_iter = m_orders.find(ref_num);
-
-  if ((m_orders.end() == order_iter) || !m_message_reader->read(message, order_iter->second))
+  if ((m_orders.end() == order_iter) || !m_message_reader->read(last_order, order_iter->second))
   {
-    std::cerr << "Failed to construct order (order not found)" << order_iter->first << std::endl;
+    std::cerr << "Failed to construct order (order not found)" << ref_num << std::endl;
     return false;
   }
 
-  switch (message.get_type())
-  {
-  case MessageType::AddOrder:
-  case MessageType::AddOrderMPIDAttribution:
-  {
-    const auto &submessage = static_cast<const AddOrderMessage &>(message);
+  first_order = last_order;
 
-    order.m_reference_number = ref_num;
-    order.m_type             = submessage.get_order_type();
-    order.m_nr_shares        = submessage.get_nr_shares();
-    order.m_stock            = submessage.get_stock();
-    order.m_price            = submessage.get_price();
-
-    break;
-  }
-  case MessageType::OrderReplace:
+  while (MessageType::OrderReplace == first_order.get_type())
   {
-    const auto &submessage  = static_cast<const OrderReplaceMessage &>(message);
-    const auto  old_ref_num = submessage.get_original_order_reference_number();
-    const auto  new_ref_num = submessage.get_new_order_reference_number();
+    const auto &submessage = static_cast<const OrderReplaceMessage &>(first_order);
 
-    if (old_ref_num == new_ref_num)
+    order_iter = m_orders.find(submessage.get_original_order_reference_number());
+
+    if ((m_orders.end() == order_iter) || !m_message_reader->read(first_order, order_iter->second))
     {
-      std::cerr << "Failed to construct order (original ref # same as new ref #) " << order_iter->first << std::endl;
+      std::cerr << "Failed to construct order (order not found)" << ref_num << std::endl;
       return false;
     }
+  }
 
-    // TODO Check recursion depth and stack size (or make the function iterative instead?)
-    construct_order(submessage.get_original_order_reference_number(), order);
+  const auto first_message_type = first_order.get_type();
+  const auto last_message_type  = last_order.get_type();
 
+  if ((first_message_type != MessageType::AddOrder) && (first_message_type != MessageType::AddOrderMPIDAttribution))
+  {
+    std::cerr << "Failed to construct order (unexpected message type) " << first_message_type << std::endl;
+    return false;
+  }
+
+  const auto &submessage = static_cast<const AddOrderMessage &>(first_order);
+
+  order.m_reference_number = submessage.get_order_reference_number();
+  order.m_type             = submessage.get_order_type();
+  order.m_nr_shares        = submessage.get_nr_shares();
+  order.m_stock            = submessage.get_stock();
+  order.m_price            = submessage.get_price();
+
+  if (last_message_type == MessageType::OrderReplace)
+  {
+    const auto &submessage   = static_cast<const OrderReplaceMessage &>(last_order);
     order.m_reference_number = submessage.get_new_order_reference_number();
     order.m_nr_shares        = submessage.get_nr_shares();
     order.m_price            = submessage.get_price();
-    break;
-  }
-  default:
-    std::cerr << "Failed to construct order (unexpected message type) " << order_iter->first << std::endl;
-    return false;
-    // break;
   }
 
   return true;

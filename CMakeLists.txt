@@ -51,6 +51,8 @@ if (COMPILER_SUPPORTS_MM_PREFETCH)
   add_compile_definitions(COMPILER_SUPPORTS_MM_PREFETCH)
 endif()
 
+add_compile_definitions(BOOST_ALL_NO_LIB)
+
 include_directories(${Boost_INCLUDE_DIRS})
 add_executable(ITCH50_Hourly_VWAP main.cpp Message.cpp)
 target_link_libraries(ITCH50_Hourly_VWAP ${Boost_LIBRARIES})
