@@ -56,10 +56,6 @@ jobs:
       if: matrix.os == 'windows-latest'
 
     - name: boost-windows
-      env:
-        BOOST_INCLUDEDIR: C:\local\boost_1_74_0\
-        BOOST_LIBRARYDIR: C:\local\boost_1_74_0\lib64-msvc-14.1
-        BOOST_ROOT: C:\local\boost_1_74_0\boost
       run: choco install -y boost-msvc-14.1
       if: matrix.os == 'windows-latest'
       
@@ -73,6 +69,10 @@ jobs:
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
       # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
+      env:
+        BOOST_INCLUDEDIR: C:\local\boost_1_74_0\
+        BOOST_LIBRARYDIR: C:\local\boost_1_74_0\lib64-msvc-14.1
+        BOOST_ROOT: C:\local\boost_1_74_0\boost      
       run: >
         cmake -B ${{ steps.strings.outputs.build-output-dir }}
         -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
