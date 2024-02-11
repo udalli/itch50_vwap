@@ -57,8 +57,9 @@ jobs:
 
     - name: boost-windows
       env:
-        BOOST_ROOT: C:\local\boost_1_74_0
-        BOOST_LIBRARYDIR: C:\local\boost_1_74_0\lib64-msvc-14.1\
+        BOOST_INCLUDEDIR: C:\local\boost_1_74_0\
+        BOOST_LIBRARYDIR: C:\local\boost_1_74_0\lib64-msvc-14.1
+        BOOST_ROOT: C:\local\boost_1_74_0\boost
       run: choco install -y boost-msvc-14.1
       if: matrix.os == 'windows-latest'
       
