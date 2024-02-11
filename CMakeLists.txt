@@ -6,7 +6,7 @@ set(Boost_USE_STATIC_LIBS off)
 set(Boost_USE_MULTITHREADED off)
 set(Boost_USE_STATIC_RUNTIME off)
 
-find_package(Boost 1.36.0 COMPONENTS container iostreams REQUIRED)
+# find_package(Boost 1.36.0 COMPONENTS container iostreams REQUIRED)
 
 set(CMAKE_BUILD_TYPE release) # TODO check if relwithdebinfo is O2 or O3?
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -Wall -std=c++20")
@@ -55,4 +55,4 @@ ADD_DEFINITIONS(-DBOOST_ALL_NO_LIB -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_IOST
 
 include_directories(${Boost_INCLUDE_DIRS})
 add_executable(ITCH50_Hourly_VWAP main.cpp Message.cpp)
-target_link_libraries(ITCH50_Hourly_VWAP ${Boost_LIBRARIES})
+target_link_libraries(ITCH50_Hourly_VWAP boost::iostreams)
