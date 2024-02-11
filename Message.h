@@ -124,7 +124,7 @@ protected:
   std::span<const unsigned char> m_raw_data;
 
 private:
-  size_t m_pos;
+  size_t m_pos{};
 };
 
 class SystemMessage : public Message
