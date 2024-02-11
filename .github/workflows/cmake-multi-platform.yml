@@ -81,11 +81,15 @@ jobs:
 
     - name: Test
       working-directory: ${{ steps.strings.outputs.build-output-dir }}
-      # Execute tests defined by the CMake configuration. Note that --build-config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
-      # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
       run: wget -q https://emi.nasdaq.com/ITCH/Nasdaq%20ITCH/01302019.NASDAQ_ITCH50.gz && gunzip -d 01302019.NASDAQ_ITCH50.gz && /usr/bin/time -v ./ITCH50_Hourly_VWAP 01302019.NASDAQ_ITCH50
+      if: matrix.os == 'ubuntu-latest'
 
-    - uses: actions/upload-artifact@v3
+    - name: Test
+      working-directory: ${{ steps.strings.outputs.build-output-dir }}
+      run: curl https://emi.nasdaq.com/ITCH/Nasdaq%20ITCH/01302019.NASDAQ_ITCH50.gz -o 01302019.NASDAQ_ITCH50.gz && tar -x 01302019.NASDAQ_ITCH50.gz && ./ITCH50_Hourly_VWAP.exe 01302019.NASDAQ_ITCH50
+      if: matrix.os == 'windows-latest'
+
+    - uses: actions/download-artifact@v3
       with:
-        name: Archive VWAP files
+        name: Download VWAP files
         path: ${{ steps.strings.outputs.build-output-dir }}/*.csv
