@@ -65,7 +65,6 @@ struct Timestamp
 };
 
 inline std::ostream &operator<<(std::ostream &ss, const Timestamp &timestamp)
-
 {
   std::uint64_t remaining_nano = timestamp.m_val;
   const auto    hour           = remaining_nano / HOUR_IN_NANOS;
@@ -518,60 +517,60 @@ void MessageHandler::handle_message(const Message &message)
   }
 }
 
-bool MessageHandler::construct_order(OrderReferenceNumber_t ref_num, Order& order) const
+bool MessageHandler::construct_order(OrderReferenceNumber_t ref_num, Order &order) const
 {
-    Message first_order{};
-    Message last_order{};
-    auto order_iter = m_orders.find(ref_num);
+  Message first_order{};
+  Message last_order{};
+  auto    order_iter = m_orders.find(ref_num);
 
-    if ((m_orders.end() == order_iter) || !m_message_reader->read(last_order, order_iter->second))
+  if ((m_orders.end() == order_iter) || !m_message_reader->read(last_order, order_iter->second))
+  {
+    std::cerr << "Failed to construct order (order not found)" << ref_num << std::endl;
+    return false;
+  }
+
+  first_order = last_order;
+
+  while (MessageType::OrderReplace == first_order.get_type())
+  {
+    const auto &submessage = static_cast<const OrderReplaceMessage &>(first_order);
+
+    order_iter = m_orders.find(submessage.get_original_order_reference_number());
+
+    if ((m_orders.end() == order_iter) || !m_message_reader->read(first_order, order_iter->second))
     {
-        std::cerr << "Failed to construct order (order not found)" << ref_num << std::endl;
-  
-
-    first_order = last_order;
-
-    while (MessageType::OrderReplace == first_order.get_type())
-    {
-        const auto& submessage = static_cast<const OrderReplaceMessage&>(first_order);
-
-        order_iter = m_orders.find(submessage.get_original_order_reference_number());
-
-        if ((m_orders.end() == order_iter) || !m_message_reader->read(first_order, order_iter->second))
-        {
-            std::cerr << "Failed to construct order (order not found)" << ref_num << std::endl;
-            return false;
-        }
+      std::cerr << "Failed to construct order (order not found)" << ref_num << std::endl;
+      return false;
     }
+  }
 
-    const auto first_message_type = first_order.get_type();
-    const auto last_message_type = last_order.get_type();
+  const auto first_message_type = first_order.get_type();
+  const auto last_message_type  = last_order.get_type();
 
-    if ((first_message_type != MessageType::AddOrder) &&
-        (first_message_type != MessageType::AddOrderMPIDAttribution))
-    {
-        std::cerr << "Failed to construct order (unexpected message type) " << first_message_type << std::endl;
-        return false;
-    }
+  if ((first_message_type != MessageType::AddOrder) && (first_message_type != MessageType::AddOrderMPIDAttribution))
+  {
+    std::cerr << "Failed to construct order (unexpected message type) " << first_message_type << std::endl;
+    return false;
+  }
 
-    const auto& submessage = static_cast<const AddOrderMessage&>(first_order);
+  const auto &submessage = static_cast<const AddOrderMessage &>(first_order);
 
-    order.m_reference_number = submessage.get_order_reference_number();
-    order.m_type = submessage.get_order_type();
-    order.m_nr_shares = submessage.get_nr_shares();
-    order.m_stock = submessage.get_stock();
-    order.m_price = submessage.get_price();
+  order.m_reference_number = submessage.get_order_reference_number();
+  order.m_type             = submessage.get_order_type();
+  order.m_nr_shares        = submessage.get_nr_shares();
+  order.m_stock            = submessage.get_stock();
+  order.m_price            = submessage.get_price();
 
-    if (last_message_type == MessageType::OrderReplace)
-    {
-        const auto& submessage = static_cast<const OrderReplaceMessage&>(last_order);
-        order.m_reference_number = submessage.get_new_order_reference_number();
-        order.m_nr_shares = submessage.get_nr_shares();
-        order.m_price = submessage.get_price();
-    }
+  if (last_message_type == MessageType::OrderReplace)
+  {
+    const auto &submessage   = static_cast<const OrderReplaceMessage &>(last_order);
+    order.m_reference_number = submessage.get_new_order_reference_number();
+    order.m_nr_shares        = submessage.get_nr_shares();
+    order.m_price            = submessage.get_price();
+  }
 
-    return true;
-} 
+  return true;
+}
 
 void MessageHandler::execute_order(Stock_t stock, SharesCount_t nr_shares, Price_t price)
 {
