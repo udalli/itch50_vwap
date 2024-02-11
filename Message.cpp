@@ -46,7 +46,7 @@ inline void try_prefetch(const void *addr)
 namespace ITCH
 {
 
-constexpr Timestamp_t SEC_IN_NANOS  = 1'000'000'000UL;
+constexpr Timestamp_t SEC_IN_NANOS  = 1'000'000'000;
 constexpr Timestamp_t MIN_IN_NANOS  = 60 * SEC_IN_NANOS;
 constexpr Timestamp_t HOUR_IN_NANOS = 60 * MIN_IN_NANOS;
 
