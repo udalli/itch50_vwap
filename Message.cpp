@@ -518,61 +518,60 @@ void MessageHandler::handle_message(const Message &message)
   }
 }
 
-bool MessageHandler::construct_order(OrderReferenceNumber_t ref_num, Order &order) const
+bool MessageHandler::construct_order(OrderReferenceNumber_t ref_num, Order& order) const
 {
-  Message message;
+    Message first_order{};
+    Message last_order{};
+    auto order_iter = m_orders.find(ref_num);
 
-  auto order_iter = m_orders.find(ref_num);
-
-  if ((m_orders.end() == order_iter) || !m_message_reader->read(message, order_iter->second))
-  {
-    std::cerr << "Failed to construct order (order not found)" << order_iter->first << std::endl;
-    return false;
-  }
-
-  switch (message.get_type())
-  {
-  case MessageType::AddOrder:
-  case MessageType::AddOrderMPIDAttribution:
-  {
-    const auto &submessage = static_cast<const AddOrderMessage &>(message);
-
-    order.m_reference_number = ref_num;
-    order.m_type             = submessage.get_order_type();
-    order.m_nr_shares        = submessage.get_nr_shares();
-    order.m_stock            = submessage.get_stock();
-    order.m_price            = submessage.get_price();
-
-    break;
-  }
-  case MessageType::OrderReplace:
-  {
-    const auto &submessage  = static_cast<const OrderReplaceMessage &>(message);
-    const auto  old_ref_num = submessage.get_original_order_reference_number();
-    const auto  new_ref_num = submessage.get_new_order_reference_number();
-
-    if (old_ref_num == new_ref_num)
+    if ((m_orders.end() == order_iter) || !m_message_reader->read(last_order, order_iter->second))
     {
-      std::cerr << "Failed to construct order (original ref # same as new ref #) " << order_iter->first << std::endl;
-      return false;
+        std::cerr << "Failed to construct order (order not found)" << ref_num << std::endl;
+  
+
+    first_order = last_order;
+
+    while (MessageType::OrderReplace == first_order.get_type())
+    {
+        const auto& submessage = static_cast<const OrderReplaceMessage&>(first_order);
+
+        order_iter = m_orders.find(submessage.get_original_order_reference_number());
+
+        if ((m_orders.end() == order_iter) || !m_message_reader->read(first_order, order_iter->second))
+        {
+            std::cerr << "Failed to construct order (order not found)" << ref_num << std::endl;
+            return false;
+        }
     }
 
-    // TODO Check recursion depth and stack size (or make the function iterative instead?)
-    construct_order(submessage.get_original_order_reference_number(), order);
+    const auto first_message_type = first_order.get_type();
+    const auto last_message_type = last_order.get_type();
 
-    order.m_reference_number = submessage.get_new_order_reference_number();
-    order.m_nr_shares        = submessage.get_nr_shares();
-    order.m_price            = submessage.get_price();
-    break;
-  }
-  default:
-    std::cerr << "Failed to construct order (unexpected message type) " << order_iter->first << std::endl;
-    return false;
-    // break;
-  }
+    if ((first_message_type != MessageType::AddOrder) &&
+        (first_message_type != MessageType::AddOrderMPIDAttribution))
+    {
+        std::cerr << "Failed to construct order (unexpected message type) " << first_message_type << std::endl;
+        return false;
+    }
 
-  return true;
-}
+    const auto& submessage = static_cast<const AddOrderMessage&>(first_order);
+
+    order.m_reference_number = submessage.get_order_reference_number();
+    order.m_type = submessage.get_order_type();
+    order.m_nr_shares = submessage.get_nr_shares();
+    order.m_stock = submessage.get_stock();
+    order.m_price = submessage.get_price();
+
+    if (last_message_type == MessageType::OrderReplace)
+    {
+        const auto& submessage = static_cast<const OrderReplaceMessage&>(last_order);
+        order.m_reference_number = submessage.get_new_order_reference_number();
+        order.m_nr_shares = submessage.get_nr_shares();
+        order.m_price = submessage.get_price();
+    }
+
+    return true;
+} 
 
 void MessageHandler::execute_order(Stock_t stock, SharesCount_t nr_shares, Price_t price)
 {
