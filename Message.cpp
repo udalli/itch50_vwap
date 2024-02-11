@@ -46,9 +46,9 @@ inline void try_prefetch(const void *addr)
 namespace ITCH
 {
 
-constexpr auto SEC_IN_NANOS  = 1'000'000'000UL;
-constexpr auto MIN_IN_NANOS  = 60 * SEC_IN_NANOS;
-constexpr auto HOUR_IN_NANOS = 60 * MIN_IN_NANOS;
+constexpr Timestamp_t SEC_IN_NANOS  = 1'000'000'000UL;
+constexpr Timestamp_t MIN_IN_NANOS  = 60 * SEC_IN_NANOS;
+constexpr Timestamp_t HOUR_IN_NANOS = 60 * MIN_IN_NANOS;
 
 constexpr auto REPORT_PERIOD           = HOUR_IN_NANOS;
 constexpr auto PRICE_CONVERSION_FACTOR = 1.0 / 10'000;
