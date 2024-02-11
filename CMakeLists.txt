@@ -2,9 +2,9 @@ cmake_minimum_required(VERSION 3.0)
 
 project(ITCH50_Hourly_VWAP)
 
-set(Boost_USE_STATIC_LIBS on)
+set(Boost_USE_STATIC_LIBS off)
 set(Boost_USE_MULTITHREADED off)
-set(Boost_USE_STATIC_RUNTIME on)
+set(Boost_USE_STATIC_RUNTIME off)
 
 find_package(Boost 1.36.0 COMPONENTS container iostreams REQUIRED)
 
