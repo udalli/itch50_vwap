@@ -83,86 +83,86 @@ inline std::ostream &operator<<(std::ostream &ss, const Timestamp &timestamp)
   return ss;
 }
 
-inline std::ostream &operator<<(std::ostream &ss, const Message &message)
-{
-  ss << message.get_length() << "b: ";
-  ss << message.get_type() << " | ";
-  ss << std::setw(4) << std::hex << message.get_stock_locate() << " | ";
-  ss << std::setw(4) << std::hex << message.get_tracking_number() << " | ";
-  ss << Timestamp{message.get_timestamp()};
-  return ss;
-}
-
-inline std::ostream &operator<<(std::ostream &ss, const SystemMessage &message)
-{
-  ss << (const Message &)message << " | ";
-  ss << message.get_event_type();
-  return ss;
-}
-
-inline std::ostream &operator<<(std::ostream &ss, const AddOrderMessage &message)
-{
-  ss << (const Message &)message << " | ";
-  ss << message.get_order_reference_number() << " | ";
-  ss << message.get_order_type() << " | ";
-  ss << message.get_nr_shares() << " | ";
-  ss << message.get_stock() << " | ";
-  ss << message.get_price();
-  return ss;
-}
-
-inline std::ostream &operator<<(std::ostream &ss, const AddOrderMPIDAttributionMessage &message)
-{
-  ss << (const AddOrderMessage &)message << " | ";
-  ss << message.get_attribution();
-  return ss;
-}
-
-inline std::ostream &operator<<(std::ostream &ss, const OrderExecutedMessage &message)
-{
-  ss << (const Message &)message << " | ";
-  ss << message.get_order_reference_number() << " | ";
-  ss << message.get_nr_shares() << " | ";
-  ss << message.get_match_number();
-  return ss;
-}
-
-inline std::ostream &operator<<(std::ostream &ss, const OrderExecutedWithPriceMessage &message)
-{
-  ss << (const OrderExecutedMessage &)message << " | ";
-  ss << message.get_printable() << " | ";
-  ss << message.get_price();
-  return ss;
-}
-
-inline std::ostream &operator<<(std::ostream &ss, const OrderReplaceMessage &message)
-{
-  ss << (const Message &)message << " | ";
-  ss << message.get_original_order_reference_number() << " | ";
-  ss << message.get_new_order_reference_number() << " | ";
-  ss << message.get_nr_shares() << " | ";
-  ss << message.get_price();
-  return ss;
-}
-
-inline std::ostream &operator<<(std::ostream &ss, const TradeMessage &message)
-{
-  ss << (const Message &)message << " | ";
-  ss << message.get_order_reference_number() << " | ";
-  ss << message.get_order_type() << " | ";
-  ss << message.get_nr_shares() << " | ";
-  ss << message.get_stock() << " | ";
-  ss << message.get_price() << " | ";
-  ss << message.get_match_number();
-  return ss;
-}
-
-inline std::ostream &operator<<(std::ostream &ss, const BrokenTradeMessage &message)
-{
-  ss << (const Message &)message << " | ";
-  ss << message.get_match_number();
-  return ss;
-}
+// inline std::ostream &operator<<(std::ostream &ss, const Message &message)
+//{
+//   ss << message.get_length() << "b: ";
+//   ss << message.get_type() << " | ";
+//   ss << std::setw(4) << std::hex << message.get_stock_locate() << " | ";
+//   ss << std::setw(4) << std::hex << message.get_tracking_number() << " | ";
+//   ss << Timestamp{message.get_timestamp()};
+//   return ss;
+// }
+//
+// inline std::ostream &operator<<(std::ostream &ss, const SystemMessage &message)
+//{
+//   ss << (const Message &)message << " | ";
+//   ss << message.get_event_type();
+//   return ss;
+// }
+//
+// inline std::ostream &operator<<(std::ostream &ss, const AddOrderMessage &message)
+//{
+//   ss << (const Message &)message << " | ";
+//   ss << message.get_order_reference_number() << " | ";
+//   ss << message.get_order_type() << " | ";
+//   ss << message.get_nr_shares() << " | ";
+//   ss << message.get_stock() << " | ";
+//   ss << message.get_price();
+//   return ss;
+// }
+//
+// inline std::ostream &operator<<(std::ostream &ss, const AddOrderMPIDAttributionMessage &message)
+//{
+//   ss << (const AddOrderMessage &)message << " | ";
+//   ss << message.get_attribution();
+//   return ss;
+// }
+//
+// inline std::ostream &operator<<(std::ostream &ss, const OrderExecutedMessage &message)
+//{
+//   ss << (const Message &)message << " | ";
+//   ss << message.get_order_reference_number() << " | ";
+//   ss << message.get_nr_shares() << " | ";
+//   ss << message.get_match_number();
+//   return ss;
+// }
+//
+// inline std::ostream &operator<<(std::ostream &ss, const OrderExecutedWithPriceMessage &message)
+//{
+//   ss << (const OrderExecutedMessage &)message << " | ";
+//   ss << message.get_printable() << " | ";
+//   ss << message.get_price();
+//   return ss;
+// }
+//
+// inline std::ostream &operator<<(std::ostream &ss, const OrderReplaceMessage &message)
+//{
+//   ss << (const Message &)message << " | ";
+//   ss << message.get_original_order_reference_number() << " | ";
+//   ss << message.get_new_order_reference_number() << " | ";
+//   ss << message.get_nr_shares() << " | ";
+//   ss << message.get_price();
+//   return ss;
+// }
+//
+// inline std::ostream &operator<<(std::ostream &ss, const TradeMessage &message)
+//{
+//   ss << (const Message &)message << " | ";
+//   ss << message.get_order_reference_number() << " | ";
+//   ss << message.get_order_type() << " | ";
+//   ss << message.get_nr_shares() << " | ";
+//   ss << message.get_stock() << " | ";
+//   ss << message.get_price() << " | ";
+//   ss << message.get_match_number();
+//   return ss;
+// }
+//
+// inline std::ostream &operator<<(std::ostream &ss, const BrokenTradeMessage &message)
+//{
+//   ss << (const Message &)message << " | ";
+//   ss << message.get_match_number();
+//   return ss;
+// }
 
 inline std::string_view read_string(const unsigned char *bytes, std::size_t length)
 {
