@@ -22,23 +22,23 @@
 20:00:00.000021649 | End of System hours
 20:05:00.000039817 | End of Messages
 	Command being timed: "./ITCH50_Hourly_VWAP /home/udalli/repos/trexquant/assignment/01302020.NASDAQ_ITCH50"
-	User time (seconds): 60.08
-	System time (seconds): 7.13
-	Percent of CPU this job got: 33%
-	Elapsed (wall clock) time (h:mm:ss or m:ss): 3:23.50
+	User time (seconds): 56.42
+	System time (seconds): 7.09
+	Percent of CPU this job got: 28%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 3:44.04
 	Average shared text size (kbytes): 0
 	Average unshared data size (kbytes): 0
 	Average stack size (kbytes): 0
 	Average total size (kbytes): 0
-	Maximum resident set size (kbytes): 13876748
+	Maximum resident set size (kbytes): 13430652
 	Average resident set size (kbytes): 0
-	Major (requiring I/O) page faults: 99917
-	Minor (reclaiming a frame) page faults: 426211
-	Voluntary context switches: 98960
-	Involuntary context switches: 246
+	Major (requiring I/O) page faults: 98965
+	Minor (reclaiming a frame) page faults: 380040
+	Voluntary context switches: 97869
+	Involuntary context switches: 939
 	Swaps: 0
-	File system inputs: 23657672
-	File system outputs: 2976
+	File system inputs: 25299144
+	File system outputs: 2968
 	Socket messages sent: 0
 	Socket messages received: 0
 	Signals delivered: 0
