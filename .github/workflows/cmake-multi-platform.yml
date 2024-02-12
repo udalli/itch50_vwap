@@ -52,10 +52,6 @@ jobs:
       if: matrix.os == 'ubuntu-latest'
 
     - name: boost-windows
-      run: choco install -y boost-msvc-14.1
-      if: matrix.os == 'windows-latest'
-
-    - name: boost-windows
       env:
         BOOST_ROOT: C:\local\boost_1_74_0
         BOOST_LIBRARYDIR: C:\local\boost_1_74_0\lib64-msvc-14.1\
