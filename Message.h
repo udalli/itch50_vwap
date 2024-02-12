@@ -221,44 +221,33 @@ private:
   const std::size_t             m_size{};
 };
 
-struct Order
-{
-  OrderReferenceNumber_t m_reference_number{};
-  OrderType              m_type{};
-  SharesCount_t          m_nr_shares{};
-  Stock_t                m_stock{};
-  Price_t                m_price{};
-};
-
-struct Execution
-{
-  OrderReferenceNumber_t m_reference_number{};
-  OrderType              m_type{};
-  SharesCount_t          m_nr_shares{};
-  MatchNumber_t          m_match_num{};
-  Stock_t                m_stock{};
-  Price_t                m_price{};
-};
-
 struct VolumePrice
 {
   double volume{};
   double price{};
 };
 
+struct OrderInfo
+{
+  Stock_t stock{};
+  Price_t price{};
+
+  OrderInfo(Stock_t s, Price_t p) : stock(s), price(p)
+  {
+  }
+};
+
 class MessageHandler
 {
 public:
   MessageHandler(std::shared_ptr<MessageReader> message_reader);
-  ~MessageHandler();
   void handle_message(const Message &message);
 
 private:
-  bool construct_order(OrderReferenceNumber_t ref_num, Order &order) const;
   void execute_order(Stock_t stock, SharesCount_t nr_shares, Price_t price);
   void report(const Timestamp_t &current_time);
 
-  using OrderMap            = HashMap<OrderReferenceNumber_t, size_t>;
+  using OrderMap            = HashMap<OrderReferenceNumber_t, OrderInfo>;
   using StockVolumePriceMap = TreeMap<Stock_t, VolumePrice>;
 
   std::shared_ptr<MessageReader> m_message_reader;

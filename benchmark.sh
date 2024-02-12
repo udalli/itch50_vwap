@@ -15,5 +15,5 @@ set -x
 rm -rf build
 mkdir build && cd build && cmake .. && make all 
 /usr/bin/time -v ./ITCH50_Hourly_VWAP ${ITCH50_FILE_PATH} &> "${ITCH50_FILE_PATH}.time"
-perf record -e cache-references,cache-misses,cycles,instructions,branches,faults,migrations ./ITCH50_Hourly_VWAP "${ITCH50_FILE_PATH}" -o "${ITCH50_FILE_PATH}.perf.data"
+perf record -o "${ITCH50_FILE_PATH}.perf.data" -e cache-references,cache-misses,cycles,instructions,branches,faults,migrations ./ITCH50_Hourly_VWAP "${ITCH50_FILE_PATH}"
 valgrind --tool=callgrind --collect-systime=msec --callgrind-out-file="${ITCH50_FILE_PATH}.callgrind.out" ./ITCH50_Hourly_VWAP "${ITCH50_FILE_PATH}"
