@@ -79,14 +79,24 @@ jobs:
       # Build your program with the given configuration. Note that --config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
       run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
 
-    - name: Test
+    - name: Prepare ITCH50 file
       working-directory: ${{ steps.strings.outputs.build-output-dir }}
-      run: wget -q https://emi.nasdaq.com/ITCH/Nasdaq%20ITCH/01302019.NASDAQ_ITCH50.gz && gunzip -d 01302019.NASDAQ_ITCH50.gz && /usr/bin/time -v ./ITCH50_Hourly_VWAP 01302019.NASDAQ_ITCH50
+      run: wget -q https://emi.nasdaq.com/ITCH/Nasdaq%20ITCH/01302019.NASDAQ_ITCH50.gz && gunzip -d 01302019.NASDAQ_ITCH50.gz
       if: matrix.os == 'ubuntu-latest'
 
-    - name: Test
+    - name: Prepare ITCH50 file
       working-directory: ${{ steps.strings.outputs.build-output-dir }}
-      run: curl https://emi.nasdaq.com/ITCH/Nasdaq%20ITCH/01302019.NASDAQ_ITCH50.gz -o 01302019.NASDAQ_ITCH50.gz && 7z x 01302019.NASDAQ_ITCH50.gz -o01302019_NASDAQ_ITCH50 && ${{ matrix.build_type }}\ITCH50_Hourly_VWAP.exe 01302019_NASDAQ_ITCH50\01302019_NASDAQ_ITCH50
+      run: curl https://emi.nasdaq.com/ITCH/Nasdaq%20ITCH/01302019.NASDAQ_ITCH50.gz -o 01302019.NASDAQ_ITCH50.gz && 7z x 01302019.NASDAQ_ITCH50.gz -o01302019_NASDAQ_ITCH50
+      if: matrix.os == 'windows-latest'
+
+    - name: Run
+      working-directory: ${{ steps.strings.outputs.build-output-dir }}
+      run: /usr/bin/time -v ./ITCH50_Hourly_VWAP 01302019.NASDAQ_ITCH50
+      if: matrix.os == 'ubuntu-latest'
+
+    - name: Run
+      working-directory: ${{ steps.strings.outputs.build-output-dir }}
+      run: ${{ matrix.build_type }}\ITCH50_Hourly_VWAP.exe 01302019_NASDAQ_ITCH50\01302019_NASDAQ_ITCH50
       if: matrix.os == 'windows-latest'
 
     - uses: actions/upload-artifact@v4
