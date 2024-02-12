@@ -47,11 +47,11 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
-    - name: boost-linux
+    - name: Install Boost (Linux)
       run: sudo apt-get update && sudo apt install libboost-all-dev
       if: matrix.os == 'ubuntu-latest'
 
-    - name: boost-windows
+    - name: Install Boost (Windows)
       run: choco install -y boost-msvc-14.3
       if: matrix.os == 'windows-latest'
       
@@ -89,14 +89,14 @@ jobs:
       run: curl https://emi.nasdaq.com/ITCH/Nasdaq%20ITCH/01302019.NASDAQ_ITCH50.gz -o 01302019.NASDAQ_ITCH50.gz && 7z x 01302019.NASDAQ_ITCH50.gz -o01302019_NASDAQ_ITCH50
       if: matrix.os == 'windows-latest'
 
-    - name: Run
+    - name: Analyze ITCH50 file
       working-directory: ${{ steps.strings.outputs.build-output-dir }}
       run: /usr/bin/time -v ./ITCH50_Hourly_VWAP 01302019.NASDAQ_ITCH50
       if: matrix.os == 'ubuntu-latest'
 
-    - name: Run
+    - name: Analyze ITCH50 file
       working-directory: ${{ steps.strings.outputs.build-output-dir }}
-      run: ${{ matrix.build_type }}\ITCH50_Hourly_VWAP.exe 01302019_NASDAQ_ITCH50\01302019_NASDAQ_ITCH50
+      run: ${{ steps.strings.outputs.build-output-dir }}\${{ matrix.build_type }}\ITCH50_Hourly_VWAP.exe 01302019_NASDAQ_ITCH50\01302019_NASDAQ_ITCH50
       if: matrix.os == 'windows-latest'
 
     - uses: actions/upload-artifact@v4
