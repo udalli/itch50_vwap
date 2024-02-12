@@ -86,7 +86,7 @@ jobs:
 
     - name: Test
       working-directory: ${{ steps.strings.outputs.build-output-dir }}
-      run: curl https://emi.nasdaq.com/ITCH/Nasdaq%20ITCH/01302019.NASDAQ_ITCH50.gz -o 01302019.NASDAQ_ITCH50.gz && 7z x 01302019.NASDAQ_ITCH50.gz -o 01302019.NASDAQ_ITCH50 && ITCH50_Hourly_VWAP.exe 01302019.NASDAQ_ITCH50
+      run: curl https://emi.nasdaq.com/ITCH/Nasdaq%20ITCH/01302019.NASDAQ_ITCH50.gz -o 01302019.NASDAQ_ITCH50.gz && 7z x 01302019.NASDAQ_ITCH50.gz -o01302019.NASDAQ_ITCH50 && ITCH50_Hourly_VWAP.exe 01302019.NASDAQ_ITCH50
       if: matrix.os == 'windows-latest'
 
     - uses: actions/upload-artifact@v4
