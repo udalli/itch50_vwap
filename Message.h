@@ -30,7 +30,7 @@ namespace ITCH
 {
 
 // TODO Benchmark further -> compare with sparse map and flat map
-template <typename K, typename V> using HashMap = ankerl::unordered_dense::map<K, V>;
+template <typename K, typename V> using HashMap = ankerl::unordered_dense::segmented_map<K, V>;
 // template <typename K, typename V> using HashMap = ankerl::unordered_dense::map<K, V>;
 // template <typename K, typename V> using HashMap = boost::unordered_map<K, V>;
 // TODO Segfaulting at key comparison during erase!? Fixable?
