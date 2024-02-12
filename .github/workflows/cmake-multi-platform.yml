@@ -96,7 +96,9 @@ jobs:
 
     - name: Analyze ITCH50 file
       working-directory: ${{ steps.strings.outputs.build-output-dir }}
-      run: ${{ steps.strings.outputs.build-output-dir }}\${{ matrix.build_type }}\ITCH50_Hourly_VWAP.exe 01302019_NASDAQ_ITCH50\01302019_NASDAQ_ITCH50
+      run: |
+        echo "C:\local\boost_1_84_0\lib64-msvc-14.3\" >> $GITHUB_PATH
+        ${{ steps.strings.outputs.build-output-dir }}\${{ matrix.build_type }}\ITCH50_Hourly_VWAP.exe 01302019_NASDAQ_ITCH50\01302019_NASDAQ_ITCH50
       if: matrix.os == 'windows-latest'
 
     - uses: actions/upload-artifact@v4
