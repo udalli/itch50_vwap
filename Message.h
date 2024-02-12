@@ -231,6 +231,10 @@ struct OrderInfo
 {
   Stock_t stock{};
   Price_t price{};
+
+  OrderInfo(Stock_t s, Price_t p) : stock(s), price(p)
+  {
+  }
 };
 
 class MessageHandler
