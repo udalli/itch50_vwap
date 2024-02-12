@@ -47,12 +47,12 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
-    - name: boost-linux
+    - name: Install Boost (Linux)
       run: sudo apt-get update && sudo apt install libboost-all-dev
       if: matrix.os == 'ubuntu-latest'
 
-    - name: boost-windows
-      run: choco install -y boost-msvc-14.3
+    - name: Install Boost (Windows)
+      run: choco install --no-progress -y boost-msvc-14.3
       if: matrix.os == 'windows-latest'
       
     - name: Set reusable strings
@@ -79,14 +79,26 @@ jobs:
       # Build your program with the given configuration. Note that --config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
       run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
 
-    - name: Test
+    - name: Prepare ITCH50 file (Linux)
       working-directory: ${{ steps.strings.outputs.build-output-dir }}
-      run: wget -q https://emi.nasdaq.com/ITCH/Nasdaq%20ITCH/01302019.NASDAQ_ITCH50.gz && gunzip -d 01302019.NASDAQ_ITCH50.gz && /usr/bin/time -v ./ITCH50_Hourly_VWAP 01302019.NASDAQ_ITCH50
+      run: wget -q https://emi.nasdaq.com/ITCH/Nasdaq%20ITCH/01302019.NASDAQ_ITCH50.gz && gunzip -d 01302019.NASDAQ_ITCH50.gz
       if: matrix.os == 'ubuntu-latest'
 
-    - name: Test
+    - name: Prepare ITCH50 file (Windows)
       working-directory: ${{ steps.strings.outputs.build-output-dir }}
-      run: curl https://emi.nasdaq.com/ITCH/Nasdaq%20ITCH/01302019.NASDAQ_ITCH50.gz -o 01302019.NASDAQ_ITCH50.gz && 7z x 01302019.NASDAQ_ITCH50.gz -o 01302019.NASDAQ_ITCH50 && ITCH50_Hourly_VWAP.exe 01302019.NASDAQ_ITCH50
+      run: curl -s https://emi.nasdaq.com/ITCH/Nasdaq%20ITCH/01302019.NASDAQ_ITCH50.gz -o 01302019.NASDAQ_ITCH50.gz && 7z x 01302019.NASDAQ_ITCH50.gz -o01302019_NASDAQ_ITCH50
+      if: matrix.os == 'windows-latest'
+
+    - name: Analyze ITCH50 file (Linux)
+      working-directory: ${{ steps.strings.outputs.build-output-dir }}
+      run: /usr/bin/time -v ./ITCH50_Hourly_VWAP 01302019.NASDAQ_ITCH50
+      if: matrix.os == 'ubuntu-latest'
+
+    - name: Analyze ITCH50 file (Windows)
+      working-directory: ${{ steps.strings.outputs.build-output-dir }}
+      run: |
+        echo "C:\local\boost_1_84_0\lib64-msvc-14.3\" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        ${{ steps.strings.outputs.build-output-dir }}\${{ matrix.build_type }}\ITCH50_Hourly_VWAP.exe 01302019_NASDAQ_ITCH50\01302019_NASDAQ_ITCH50
       if: matrix.os == 'windows-latest'
 
     - uses: actions/upload-artifact@v4
