@@ -86,7 +86,7 @@ jobs:
 
     - name: Prepare ITCH50 file
       working-directory: ${{ steps.strings.outputs.build-output-dir }}
-      run: curl https://emi.nasdaq.com/ITCH/Nasdaq%20ITCH/01302019.NASDAQ_ITCH50.gz -o 01302019.NASDAQ_ITCH50.gz && 7z x 01302019.NASDAQ_ITCH50.gz -o01302019_NASDAQ_ITCH50
+      run: curl -s https://emi.nasdaq.com/ITCH/Nasdaq%20ITCH/01302019.NASDAQ_ITCH50.gz -o 01302019.NASDAQ_ITCH50.gz && 7z x 01302019.NASDAQ_ITCH50.gz -o01302019_NASDAQ_ITCH50
       if: matrix.os == 'windows-latest'
 
     - name: Analyze ITCH50 file
@@ -98,6 +98,8 @@ jobs:
       working-directory: ${{ steps.strings.outputs.build-output-dir }}
       run: |
         echo "C:\local\boost_1_84_0\lib64-msvc-14.3\" >> $GITHUB_PATH
+        echo "path -> $PATH"
+        echo "github_path -> $GITHUB_PATH"
         ${{ steps.strings.outputs.build-output-dir }}\${{ matrix.build_type }}\ITCH50_Hourly_VWAP.exe 01302019_NASDAQ_ITCH50\01302019_NASDAQ_ITCH50
       if: matrix.os == 'windows-latest'
 
