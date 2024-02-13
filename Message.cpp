@@ -321,7 +321,7 @@ bool MessageReader::read(Message &message, size_t pos) const
   return true;
 }
 
-MessageHandler::MessageHandler(std::shared_ptr<MessageReader> message_reader) : m_message_reader(message_reader)
+MessageHandler::MessageHandler()
 {
   // TODO Find optimum initial size
   constexpr auto initial_size = 32 * 1024 * 1024;

@@ -38,10 +38,10 @@ int main(int argc, char *argv[])
   {
     const auto filename{argv[1]};
     auto       message         = ITCH::Message{};
-    auto       message_reader  = std::make_shared<ITCH::MessageReader>(filename);
-    auto       message_handler = ITCH::MessageHandler(message_reader);
+    auto       message_reader  = ITCH::MessageReader{filename};
+    auto       message_handler = ITCH::MessageHandler{};
 
-    while (message_reader->next(message))
+    while (message_reader.next(message))
     {
       message_handler.handle_message(message);
     }

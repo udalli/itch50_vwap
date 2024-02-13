@@ -31,7 +31,7 @@ namespace ITCH
 
 // TODO Benchmark further -> compare with sparse map and flat map
 template <typename K, typename V> using HashMap = ankerl::unordered_dense::map<K, V>;
-// template <typename K, typename V> using HashMap = ankerl::unordered_dense::map<K, V>;
+// template <typename K, typename V> using HashMap = ankerl::unordered_dense::segmented_map<K, V>;
 // template <typename K, typename V> using HashMap = boost::unordered_map<K, V>;
 // TODO Segfaulting at key comparison during erase!? Fixable?
 // template <typename K, typename V> using HashMap = btree::map<K, V>;
@@ -106,12 +106,6 @@ public:
   Message(std::span<const unsigned char> raw_data, size_t pos) : m_raw_data(raw_data), m_pos(pos)
   {
   }
-
-  //  virtual ~Message()                  = default;
-  //  Message(const Message &)            = default;
-  //  Message &operator=(const Message &) = default;
-  //  Message(Message &&)                 = default;
-  //  Message &operator=(Message &&)      = default;
 
   std::size_t      get_offset() const;
   std::size_t      get_length() const;
@@ -214,7 +208,6 @@ public:
   bool read(Message &message, size_t pos) const;
 
 private:
-  // std::ifstream m_ifs;
   boost::iostreams::mapped_file m_file;
   std::size_t                   m_pos{};
   const unsigned char          *m_data;
@@ -240,7 +233,7 @@ struct OrderInfo
 class MessageHandler
 {
 public:
-  MessageHandler(std::shared_ptr<MessageReader> message_reader);
+  MessageHandler();
   void handle_message(const Message &message);
 
 private:
@@ -250,10 +243,9 @@ private:
   using OrderMap            = HashMap<OrderReferenceNumber_t, OrderInfo>;
   using StockVolumePriceMap = TreeMap<Stock_t, VolumePrice>;
 
-  std::shared_ptr<MessageReader> m_message_reader;
-  OrderMap                       m_orders;
-  StockVolumePriceMap            m_stocks;
-  Timestamp_t                    m_last_report_time{};
+  OrderMap            m_orders;
+  StockVolumePriceMap m_stocks;
+  Timestamp_t         m_last_report_time{};
 };
 
 } // namespace ITCH
