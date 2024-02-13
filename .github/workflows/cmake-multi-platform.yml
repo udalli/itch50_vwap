@@ -98,7 +98,7 @@ jobs:
       working-directory: ${{ steps.strings.outputs.build-output-dir }}
       run: |
         $env:path += ";C:\local\boost_1_84_0\lib64-msvc-14.3"
-        ${{ steps.strings.outputs.build-output-dir }}\${{ matrix.build_type }}\ITCH50_Hourly_VWAP.exe 01302019_NASDAQ_ITCH50\01302019_NASDAQ_ITCH50
+        ${{ steps.strings.outputs.build-output-dir }}\${{ matrix.build_type }}\ITCH50_Hourly_VWAP.exe ${{ steps.strings.outputs.build-output-dir }}\01302019_NASDAQ_ITCH50\01302019_NASDAQ_ITCH50
       if: matrix.os == 'windows-latest'
 
     - uses: actions/upload-artifact@v4
